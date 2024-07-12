@@ -15,22 +15,31 @@ class AuthService:
     def __init__(self, repository: AuthRepository = Depends(AuthRepository)):
         self.repository = repository
 
-
     async def register_user(self, session: AsyncSession, data: RegisterUserS):
+        payload_copy: dict = data.model_copy().model_dump()
+        hashed_password = helpers.hash_password(payload_copy["password"])
+        del payload_copy["confirm_password"]
+        del payload_copy["password"]
+
+        payload_copy["hashed_password"] = hashed_password
         user: ReturnUserS = await self.repository.create_user(
             session=session,
-            data=data
+            data=payload_copy
         )
         return user
 
     async def authorize_user(self, session: AsyncSession, user_creds: LoginUserS) -> AccessToken:
         user: dict[str: TokenPayload, str: str] = \
-            await self.repository.login_user(session=session, user_creds=user_creds)
+            await self.repository.login_user(
+                session=session,
+                email=user_creds.email,
+                password=user_creds.password
+            )
         if helpers.validate_password(user_creds.password, user["hashed_password"]):
-            return helpers.create_token(user["payload"], expire_timedelta=timedelta(minutes=10))
+            return helpers.create_token(user["payload"], expire_timedelta=timedelta(minutes=100))
 
     @classmethod
-    def get_token_payload(cls, credentials: HTTPAuthorizationCredentials):
+    def get_token_payload(cls, credentials: HTTPAuthorizationCredentials) -> dict:
         token: str = credentials.credentials
         if not token:
             raise HTTPException(
@@ -44,13 +53,12 @@ class AuthService:
     def validate_token(payload: dict):
         email: str = payload["sub"]
         expiration: int = payload["exp"]
-        if not email or not expiration or "is_admin" not in payload:
+        if not email or not expiration or "role_name" not in payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
             )
         return email
-
 
     async def get_auth_user(self,
                             session: AsyncSession,
@@ -59,20 +67,15 @@ class AuthService:
         payload: dict = self.get_token_payload(credentials=credentials)
         email: str = self.validate_token(payload)
 
-        user: User = await self.repository.retrieve_user_by_email(session=session,
-                                                                  email=email, is_login=True
-                                                                  )
+        user: User = await self.repository.retrieve_user_by_email(
+            session=session,
+            email=email, is_login=True
+            )
 
         return AuthenticatedUserS(
             id=user.id,
-            name=user.name,
+            first_name=user.first_name,
+            last_name=user.last_name,
             email=user.email,
-            is_admin=user.is_admin
+            role_name=user.role_name
         )
-
-
-
-
-
-
-

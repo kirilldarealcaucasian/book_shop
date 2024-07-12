@@ -1,12 +1,12 @@
-from .base_schemas import ImageBaseS
+from main.schemas.base_schemas import ImageBaseS
 
 
 class ReturnImageS(ImageBaseS):
     id: int
-    product_id: int
+    book_isbn: str
     url: str
 
 
 class CreateImageS(ImageBaseS):
-    product_id: int
+    book_id: str
     url: str

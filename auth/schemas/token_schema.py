@@ -6,5 +6,6 @@ class AccessToken(BaseModel):
 
 
 class TokenPayload(BaseModel):
+    user_id: int
     email: str
-    is_admin: bool
+    role: str

@@ -1,13 +1,23 @@
-from pydantic import Field, EmailStr, ConfigDict
+from datetime import date, datetime
+from pydantic import Field, EmailStr, model_validator
+from main.schemas.base_schemas import UserBaseS, BaseModel, Id
+from main.schemas.order_schemas import ReturnOrderIdS, ReturnOrderS
+from typing_extensions import Self, Literal
 
-from .base_schemas import UserBaseS, BaseModel, Id
-from .product_order_schemas import ReturnOrderIdProductS
 
-
-class RegisterUserS(BaseModel):
-    name: str
-    email: EmailStr
+class RegisterUserS(UserBaseS):
     password: str = Field(min_length=6)
+    confirm_password: str = Field(min_length=6)
+    gender: Literal["male", "female"]
+
+    @model_validator(mode="after")
+    def check_password_match(self) -> Self:
+        if (self.password is not None and self.confirm_password is not None
+                and self.password != self.confirm_password):
+            raise ValueError(
+                "Passwords do not match"
+            )
+        return self
 
 
 class LoginUserS(BaseModel):
@@ -16,32 +26,31 @@ class LoginUserS(BaseModel):
 
 
 class UpdateUserS(UserBaseS):
-    pass
+    role_name: str
 
 
 class UpdatePartiallyUserS(BaseModel):
-    name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    gender: str | None = None
     email: EmailStr | None = None
     password: str | None = None
-    is_admin: bool | None = False
+    registration_date: datetime = None
+    role_name: str | None = None
+    date_of_birth: date = None
 
 
 class ReturnUserS(UserBaseS, Id):
-    pass
+    gender: Literal["male", "female"]
+    role_name: str
 
 
-
-class ReturnUserWithOrderS(BaseModel):
-    user_name: str
+class ReturnUserWithOrdersS(BaseModel):
+    first_name: str
+    last_name: str
     email: EmailStr
-    orders: list[ReturnOrderIdProductS]
-
-    # class Config:
-    #     exclude = {"number_in_stock"}
+    orders: list[ReturnOrderS]
 
 
 class AuthenticatedUserS(UserBaseS, Id):
-    pass
-
-
-
+    role_name: str

@@ -12,7 +12,7 @@ http_bearer = HTTPBearer()
 
 
 @router.post('/register',
-             status_code=status.HTTP_201_CREATED,
+             status_code=status.HTTP_200_OK,
              response_model=ReturnUserS
              )
 async def register_user(

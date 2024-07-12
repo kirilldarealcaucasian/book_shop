@@ -1,1 +1,1 @@
-from .auth_repository import AuthRepository
+from auth.repositories.auth_repository import AuthRepository

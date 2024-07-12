@@ -1,14 +1,15 @@
 __all__ = (
-    "AbstractRepository",
-    "AbstractService",
-    "db_url",
-    "db_config",
+    "OrmEntityRepository",
+    "EntityBaseService",
+    "settings",
     "ImageConfig",
-    "Base"
+    "db_config"
 )
 
-from .abstract_repository import AbstractRepository
-from .abstract_service import AbstractService
-from .db_conf import db_url, db_config
-from .image_conf.conf import ImageConfig
-from main.models import Base
+from core.db_conf.db_settings import settings
+from core.db_conf.config import db_config
+from core.image_conf.conf import ImageConfig
+from core.entity_base_service import EntityBaseService
+from core.base_repos import OrmEntityRepository
+
+

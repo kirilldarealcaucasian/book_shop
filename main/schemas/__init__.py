@@ -1,48 +1,83 @@
 __all__ = (
-    "ReturnProductS",
-    "CreateProductS",
-    "UpdateProductS",
-    "UpdatePartiallyProductS",
-    "CreateCategoryS",
-    "CreateImageS",
-    "ReturnCategoryS",
-    "ReturnOrderProductS",
-    "AuthenticatedUserS",
-    "UpdatePartiallyUserS",
-    "UpdateUserS",
+    "ReturnBookS",
+    "ReturnOrderS",
+    "ShortenedReturnOrderS",
     "ReturnUserS",
     "ReturnImageS",
-    "ReturnUserWithOrderS",
-    "ReturnOrderIdProductS",
+    "ReturnUserWithOrdersS",
+    "ReturnOrderIdS",
+    "ReturnAuthorS",
+    "ReturnPublisherS",
+
+    "UpdateBookS",
+    "UpdatePartiallyBookS",
+    "UpdatePartiallyUserS",
+    "UpdatePartiallyAuthorS",
+    "UpdatePartiallyPublisherS",
+    "UpdatePartiallyOrderS",
+    "UpdateUserS",
+    "UpdateAuthorS",
+    "UpdateOrderS",
+    "UpdatePublisherS",
+
+    "CreateImageS",
+    "CreateBookS",
+    "CreateOrderS",
+    "CreateAuthorS",
+    "CreatePublisherS",
+
+    "AuthenticatedUserS",
+    "RegisterUserS",
+    "LoginUserS",
+    "BookSummaryS",
+    "OrderSummaryS",
+
+    "QuantityS",
+    "BookFilterS"
 )
 
+from main.schemas.book_schemas import (
+    ReturnBookS,
+    CreateBookS,
+    UpdateBookS,
+    UpdatePartiallyBookS,
+    BookSummaryS
+)
 
-from .product_schemas import (ReturnProductS,
-                             CreateProductS,
-                             UpdateProductS,
-                             UpdatePartiallyProductS,
-                             )
+from main.schemas.order_schemas import (
+    CreateOrderS,
+    UpdateOrderS,
+    OrderSummaryS,
+    ReturnOrderS,
+    ReturnOrderIdS,
+    ShortenedReturnOrderS,
+    QuantityS,
+    UpdatePartiallyOrderS
+)
 
-from .category_schemas import (CreateCategoryS,
-                               ReturnCategoryS,
-                               UpdateCategoryS
-                               )
+from main.schemas.user_schemas import (
+    RegisterUserS,
+    UpdatePartiallyUserS,
+    UpdateUserS,
+    ReturnUserS,
+    ReturnUserWithOrdersS,
+    LoginUserS,
+    AuthenticatedUserS
+)
 
-from .order_schemas import (CreateOrderS,
-                           ReturnOrderS,
-                           UpdateOrderS
-                           )
+from main.schemas.image_schemas import (ReturnImageS, CreateImageS)
+from main.schemas.author_schemas import (
+    CreateAuthorS,
+    UpdateAuthorS,
+    UpdatePartiallyAuthorS,
+    ReturnAuthorS
+)
 
-from .user_schemas import (RegisterUserS,
-                           UpdatePartiallyUserS,
-                           UpdateUserS,
-                           ReturnUserS,
-                           ReturnUserWithOrderS,
-                           LoginUserS,
-                           AuthenticatedUserS
-                           )
+from main.schemas.publisher_schemas import (
+    CreatePublisherS,
+    UpdatePublisherS,
+    UpdatePartiallyPublisherS,
+    ReturnPublisherS
+)
 
-from .product_order_schemas import ReturnOrderProductS, ReturnOrderIdProductS
-
-
-from .image_schemas import (ReturnImageS, CreateImageS)
+from main.schemas.filters import BookFilterS

@@ -1,14 +1,11 @@
 import datetime
-from bcrypt import hashpw, gensalt, checkpw
+from bcrypt import hashpw, checkpw
 from fastapi import HTTPException, status
-
-
 from auth.config.auth_config import conf
 from datetime import timedelta
-from .schemas.token_schema import AccessToken, TokenPayload
-from main.schemas import RegisterUserS
-import jwt
+from auth.schemas import AccessToken, TokenPayload
 
+import jwt
 
 
 def encode_jwt(
@@ -47,9 +44,9 @@ def decode_jwt(
             detail="Invalid token"
         )
     except jwt.exceptions.ExpiredSignatureError:
-        raise HTTPException(detail="Token has been expired",
-                            status_code=status.HTTP_401_UNAUTHORIZED
-                            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been expired")
 
 
 def create_token(
@@ -58,7 +55,8 @@ def create_token(
 ) -> AccessToken:
         payload = {
             "sub": data.email,
-            "is_admin": data.is_admin
+            "user_id": data.user_id,
+            "role": data.role
         }
         token = encode_jwt(payload=payload, expire_timedelta=expire_timedelta)
         return token
@@ -68,6 +66,7 @@ def hash_password(password: str, salt: str = conf.SALT) -> str:
     password_to_bytes = password.encode("utf-8")
     hashed_password = hashpw(password_to_bytes, salt.encode("utf-8"))
     return hashed_password.decode()
+
 
 
 def validate_password(password: str, hashed_password: str) -> bool:

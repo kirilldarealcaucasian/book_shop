@@ -1,16 +1,26 @@
 __all__ = (
-    "ProductService",
+    "BookService",
     "OrderService",
     "UserService",
-    "CategoryService",
     "ImageService",
-    "AbstractService",
+    "EntityBaseService",
+    "AuthorService",
+    "PublisherService",
 )
 
-from .services import (
-    ProductService,
-    AbstractService,
-    OrderService, UserService,
-    CategoryService,
-    ImageService
-)
+from main.services.order_service import OrderService
+from main.services.user_service import UserService
+from main.services.book_service import BookService
+from main.services.author_service import AuthorService
+from main.services.publisher_service import PublisherService
+from main.services.image_service import ImageService
+
+# from main.services.services import (
+#     BookService,
+#     EntityBaseService,
+#     OrderService,
+#     UserService,
+#     ImageService,
+#     AuthorService,
+#     PublisherService,
+# )

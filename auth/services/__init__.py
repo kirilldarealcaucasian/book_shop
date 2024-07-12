@@ -1,8 +1,7 @@
 __all__ = (
     "AuthService",
-    "PermissionService",
+    # "PermissionService",
 )
 
-
-from .auth_service import AuthService
-from .permission_service import PermissionService
+from auth.services.auth_service import AuthService
+# from auth.services.permission_service import PermissionService

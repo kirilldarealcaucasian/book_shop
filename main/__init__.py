@@ -1,9 +1,10 @@
-__all__ = ("CreateProductS", "Product", "User", "redis")
+__all__ = ("CreateBookS", "Book", "User")
 
 
+from main.schemas import CreateBookS
+from main.models import Book, User
 
-from .schemas import CreateProductS
-from .models import Product, User
+
 
 
 

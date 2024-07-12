@@ -1,8 +1,11 @@
 __pycache__/
 venv/
 .idea/
-.env
-.pytest_cache/
+core/db_conf/.env
+tests/.pytest_cache/
 TODO.txt
 *.mypy_cache
 
+/auth/.env
+/.ruff_cache/
+/.pytest_cache/

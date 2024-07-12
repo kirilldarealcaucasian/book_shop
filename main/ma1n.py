@@ -1,16 +1,16 @@
+import time
 from contextlib import asynccontextmanager
 import uvicorn
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-import routers.product_routers, \
-    routers.category_routers, \
-    routers.order_routers, \
-    routers.image_routers, \
-    routers.user_routers, \
-    routers.order_product_routers
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 import aioredis
-from auth.routers.auth_routers import router as auth_router
-
+from auth.routers import auth_router
+from main.routers import (image_router,
+                          order_router, book_router, user_router,
+                          publisher_router, author_router
+                          )
+from core.db_conf.db_settings import settings
+from logger import logger
 
 redis = None
 
@@ -20,25 +20,45 @@ async def lifespan(app: FastAPI):
     global redis
     if not redis:
         try:
-            redis = aioredis.from_url("redis://localhost:6379", decode_responses=True)
+            redis = aioredis.from_url(
+                f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}", decode_responses=True)
             yield
             redis.close()
         except aioredis.exceptions.ConnectionError as e:
             yield None
+
         except ConnectionResetError as e:
             yield None
 
 
-app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), "static")
+app = FastAPI(prefix="v1", lifespan=lifespan)
 
-app.include_router(routers.product_routers.router)
-app.include_router(routers.category_routers.router)
-app.include_router(routers.order_routers.router)
-app.include_router(routers.user_routers.router)
-app.include_router(auth_router)
-app.include_router(routers.order_product_routers.router)
-app.include_router(routers.image_routers.router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["8"]
+)
+
+for router in (
+        book_router,
+        order_router, user_router,
+        image_router, auth_router,
+        publisher_router, author_router
+):
+    app.include_router(router)
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    logger.info("Request execution time: ", extra={
+        "request_process_time": round(process_time, 3)
+    })
+    return response
 
 
 @app.get("/")

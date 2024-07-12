@@ -1,0 +1,47 @@
+[
+  {
+    "id": "0b003aac-25dc-4fd6-8f89-e2ba796c6386",
+    "isbn":"777776",
+    "name": "Book 2",
+    "description": "book 2",
+    "price_per_unit": 100,
+    "number_in_stock": 10,
+    "genre_name": "Horror",
+    "rating": 4,
+    "discount": 20
+  },
+   {
+    "id": "ecd38a11-3bbd-4bba-b596-3e2d554796a7",
+    "isbn":"1010101",
+    "name": "Book for update",
+    "description": "book for update",
+    "price_per_unit": 10,
+    "number_in_stock": 15,
+    "genre_name": "Fantasy",
+    "rating": 3,
+    "discount": 2
+  },
+  {
+    "id": "fb39af9d-292e-4eb0-989c-9e5aa195a4a0",
+    "isbn":"33333",
+    "name": "Book for teeeeest",
+    "description": "book for teeest",
+    "price_per_unit": 12,
+    "number_in_stock": 50,
+    "genre_name": "Fantasy",
+    "rating": 3,
+    "discount": 10
+  },
+  {
+    "id": "657dab80-50ff-45d9-a242-ac0357d97417",
+    "isbn":"555-35-35",
+    "name": "deletion book",
+    "description": "book for deletion",
+    "price_per_unit": 100,
+    "number_in_stock": 10,
+    "genre_name": "Fantasy",
+    "rating": 0,
+    "discount": 0
+  }
+]
+

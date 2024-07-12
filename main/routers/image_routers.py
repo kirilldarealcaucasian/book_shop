@@ -1,35 +1,37 @@
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
-
-from core.db_conf import db_config
+from core import db_config
 from main.services import ImageService
 
 
-router = APIRouter(prefix="/images", tags=["Images"])
+router = APIRouter(prefix="/images/books", tags=["Images"])
 
 
-@router.get("/{product_id}", status_code=status.HTTP_200_OK)
+@router.get("/{book_isbn}", status_code=status.HTTP_200_OK)
 async def get_all_images(
-        product_id: int,
+        book_id: str,
         service: ImageService = Depends(),
         session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
 ):
-    return await service.get_all(session=session, product_id=product_id)
+    return await service.get_all_images(session=session, book_id=book_id)
 
 
-@router.post('/product/{product_id}', status_code=status.HTTP_201_CREATED)
+@router.post('/{book_isbn}', status_code=status.HTTP_201_CREATED)
 async def create_image(
-        file: UploadFile,
-        product_id: int,
+        book_id: str,
+        file: UploadFile = File(...),
         service: ImageService = Depends(),
         session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
 ) -> None:
-    return await service.upload_image(session=session,
-                                      image=file, product_id=product_id)
+    return await service.upload_image(
+        session=session,
+        image=file,
+        book_id=book_id
+    )
 
 
-@router.delete('/product/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{image_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_image(
         image_id: int,
         service: ImageService = Depends(),
@@ -37,6 +39,4 @@ async def delete_image(
 ) -> None:
     return await service.delete_image(session=session,
                                       image_id=image_id,
-
                                       )
-

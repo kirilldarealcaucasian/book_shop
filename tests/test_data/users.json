@@ -1,0 +1,20 @@
+[
+  {
+    "id": 3,
+    "first_name": "Jordan",
+    "last_name": "Belford",
+    "gender": "male",
+    "email": "jordan@gmail.com",
+    "hashed_password": "$2b$12$3Ym1ebFcV9IZAuyEgd083u2t0YwXSf74SPTtxiY3npPTzKSwiNMzG",
+    "role_name": "admin"
+  },
+  {
+    "id": 2,
+    "first_name": "Alisha",
+    "last_name": "Belford",
+    "gender": "female",
+    "email": "alisha@gmail.com",
+    "hashed_password": "$2b$12$3Ym1ebFcV9IZAuyEgd083u2t0YwXSf74SPTtxiY3npPTzKSwiNMzG",
+    "role_name": "user"
+  }
+]

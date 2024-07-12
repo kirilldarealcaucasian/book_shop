@@ -1,5 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Id(BaseModel):
@@ -10,15 +9,11 @@ class Config(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProductBaseS(Config):
-    name: str
-    description: str
-    price_per_unit: int
-    number_in_stock: int
-
-
-class CategoryBaseS(Config):
-    name: str
+class BookBaseS(Config):
+    name: str = Field(min_length=2)
+    description: str | None
+    price_per_unit: float = Field(ge=1.0)
+    number_in_stock: int = Field(ge=1)
 
 
 class OrderBaseS(Config):
@@ -26,13 +21,10 @@ class OrderBaseS(Config):
 
 
 class UserBaseS(Config):
-    name: str
+    first_name: str = Field(min_length=2)
+    last_name: str = Field(min_length=2)
     email: EmailStr
-    is_admin: bool
 
 
 class ImageBaseS(Config):
     pass
-
-
-
