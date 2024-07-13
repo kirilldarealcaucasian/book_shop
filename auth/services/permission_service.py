@@ -6,10 +6,10 @@ from typing_extensions import Annotated
 from auth.services import AuthService
 from auth.repositories import AuthRepository
 from core.base_repos import OrmEntityRepoInterface
-from main.models import Order
-from main.repositories import OrderRepository
-from main.repositories.order_repo import CombinedOrderRepositoryInterface
-from main.services import OrderService
+from application.models import Order
+from application.repositories import OrderRepository
+from application.repositories.order_repo import CombinedOrderRepositoryInterface
+from application.services import OrderService
 from core.db_conf.config import db_config
 from core.exceptions import UnauthorizedError
 

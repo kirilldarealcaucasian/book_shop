@@ -9,3 +9,4 @@ TODO.txt
 /auth/.env
 /.ruff_cache/
 /.pytest_cache/
+/application/services/.ruff_cache/

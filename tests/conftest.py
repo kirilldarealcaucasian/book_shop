@@ -6,8 +6,8 @@ import asyncio
 from httpx import AsyncClient
 from sqlalchemy import insert
 from core import settings, db_config
-from main.models import Base, User, Book, BookOrderAssoc, Author, Publisher, Order, Image
-from main.ma1n import app
+from application.models import Base, User, Book, BookOrderAssoc, Author, Publisher, Order, Image
+from application.cmd import app
 import os
 
 

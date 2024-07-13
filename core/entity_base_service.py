@@ -4,27 +4,27 @@ from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar
 from core.exceptions import RelatedEntityDoesNotExist, ServerError, EntityDoesNotExist, RepositoryResolutionError, \
     FilterAttributeError
-from main.schemas import (CreateBookS,
-                          CreateOrderS,
-                          CreateImageS,
-                          CreateAuthorS,
-                          CreatePublisherS,
-                          RegisterUserS,
-                          UpdateBookS,
-                          UpdateOrderS,
-                          UpdateAuthorS,
-                          UpdateUserS,
-                          UpdatePublisherS,
-                          UpdatePartiallyBookS,
-                          UpdatePartiallyUserS,
-                          UpdatePartiallyAuthorS,
-                          UpdatePartiallyPublisherS,
-                          ReturnBookS,
-                          ReturnOrderS,
-                          ReturnUserS,
-                          ReturnImageS,
-                          ReturnPublisherS, UpdatePartiallyOrderS
-                          )
+from application.schemas import (CreateBookS,
+                                 CreateOrderS,
+                                 CreateImageS,
+                                 CreateAuthorS,
+                                 CreatePublisherS,
+                                 RegisterUserS,
+                                 UpdateBookS,
+                                 UpdateOrderS,
+                                 UpdateAuthorS,
+                                 UpdateUserS,
+                                 UpdatePublisherS,
+                                 UpdatePartiallyBookS,
+                                 UpdatePartiallyUserS,
+                                 UpdatePartiallyAuthorS,
+                                 UpdatePartiallyPublisherS,
+                                 ReturnBookS,
+                                 ReturnOrderS,
+                                 ReturnUserS,
+                                 ReturnImageS,
+                                 ReturnPublisherS, UpdatePartiallyOrderS
+                                 )
 from logger import logger
 
 CreateDataT = TypeVar(
@@ -70,7 +70,7 @@ class RepositoryResolver:
 
 
 class EntityBaseService:
-    # calls to the repository defined by the service in main/services
+    # calls to the repository defined by the service in application/services
 
     def __init__(self, **repos):
         for repo_name, instance in repos.items():

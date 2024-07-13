@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
-from main.ma1n import app
-from main.schemas import UpdatePartiallyOrderS
+from application.cmd import app
+from application.schemas import UpdatePartiallyOrderS
 
 
 @pytest.mark.asyncio

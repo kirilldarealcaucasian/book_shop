@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
-from main.ma1n import app
-from main.schemas import UpdateUserS, UpdatePartiallyUserS
+from application.cmd import app
+from application.schemas import UpdateUserS, UpdatePartiallyUserS
 
 
 @pytest.mark.asyncio

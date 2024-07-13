@@ -1,0 +1,56 @@
+from datetime import date, datetime
+from pydantic import Field, EmailStr, model_validator
+from application.schemas.base_schemas import UserBaseS, BaseModel, Id
+from application.schemas.order_schemas import ReturnOrderIdS, ReturnOrderS
+from typing_extensions import Self, Literal
+
+
+class RegisterUserS(UserBaseS):
+    password: str = Field(min_length=6)
+    confirm_password: str = Field(min_length=6)
+    gender: Literal["male", "female"]
+
+    @model_validator(mode="after")
+    def check_password_match(self) -> Self:
+        if (self.password is not None and self.confirm_password is not None
+                and self.password != self.confirm_password):
+            raise ValueError(
+                "Passwords do not match"
+            )
+        return self
+
+
+class LoginUserS(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+
+
+class UpdateUserS(UserBaseS):
+    role_name: str
+
+
+class UpdatePartiallyUserS(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    gender: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
+    registration_date: datetime = None
+    role_name: str | None = None
+    date_of_birth: date = None
+
+
+class ReturnUserS(UserBaseS, Id):
+    gender: Literal["male", "female"]
+    role_name: str
+
+
+class ReturnUserWithOrdersS(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    orders: list[ReturnOrderS]
+
+
+class AuthenticatedUserS(UserBaseS, Id):
+    role_name: str

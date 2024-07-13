@@ -16,7 +16,7 @@ def cachify(instance_return_schema, cache_time: timedelta | int) -> Callable:
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs) -> list[instance_return_schema]:
-            from main.ma1n import redis
+            from application.cmd import redis
             try:
                 await redis.ping()
             except Exception:

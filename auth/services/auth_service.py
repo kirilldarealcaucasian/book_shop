@@ -2,9 +2,9 @@ from datetime import timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from main import User
+from application import User
 from auth.repositories.auth_repository import AuthRepository
-from main.schemas import LoginUserS, RegisterUserS, ReturnUserS, AuthenticatedUserS
+from application.schemas import LoginUserS, RegisterUserS, ReturnUserS, AuthenticatedUserS
 from auth import helpers
 from auth.helpers import decode_jwt
 from auth.schemas.token_schema import TokenPayload, AccessToken

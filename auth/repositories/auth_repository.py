@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from main import User
-from main.schemas import ReturnUserS
+from application import User
+from application.schemas import ReturnUserS
 from auth.schemas.token_schema import TokenPayload
 from auth import helpers
 from sqlalchemy.exc import DBAPIError, NoSuchTableError

@@ -2,8 +2,8 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
-from main.ma1n import app
-from main.schemas import UpdateBookS, UpdatePartiallyBookS
+from application.cmd import app
+from application.schemas import UpdateBookS, UpdatePartiallyBookS
 
 
 @pytest.mark.asyncio
