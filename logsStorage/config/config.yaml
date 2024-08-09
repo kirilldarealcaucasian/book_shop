@@ -1,0 +1,11 @@
+http_server:
+  address: "0.0.0.0:8083"
+  write_timeout: 4s
+  read_timeout: 4s
+database:
+  mongo_user: "user"
+  mongo_password: "user"
+  mongo_hostname: "mongo"
+  mongo_port: 27017
+  mongo_db_name: "logs"
+  timeout: 1s

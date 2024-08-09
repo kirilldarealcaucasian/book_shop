@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  logs-service:
+    build:
+      context: ..
+    ports:
+      - "8083:8083"
+    environment:
+      CONFIG_PATH: "/app/config/config.yaml"
+    restart: on-failure
+    depends_on:
+      - mongo
+      - rabbitmq
+  
+  mongo:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: user
+    command: mongod --auth --bind_ip_all
+    ports:
+      - 27017:27017
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - 8085:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://user:user@mongo:27017
+      ME_CONFIG_BASICAUTH: true
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.11-management
+    hostname: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=rmuser
+      - RABBITMQ_DEFAULT_PASS=rmpassword
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
+    ports:
+      - 15672:15672
+      - 5672:5672
