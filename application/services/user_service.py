@@ -11,6 +11,7 @@ from application.schemas import (
     ReturnUserWithOrdersS,
 )
 from application.schemas.filters import PaginationS
+from core.exceptions import EntityDoesNotExist
 
 
 class UserService(EntityBaseService):
@@ -31,12 +32,19 @@ class UserService(EntityBaseService):
             limit=pagination.limit,
         )
 
-    async def get_users_with_filters(
-        self, session: AsyncSession, **filters
-    ) -> list[ReturnUserS] | ReturnUserS:
-        return await super().get_all(
-            repo=self.user_repo, session=session, **filters
+    async def get_user_by_id(
+        self,
+        session: AsyncSession,
+        id: int
+    ) -> ReturnUserS:
+        user: ReturnUserS | None = await super().get_by_id(
+            repo=self.user_repo,
+            session=session,
+            id=id
         )
+        if user is None:
+            raise EntityDoesNotExist(entity="User")
+        return user
 
     async def delete_user(
         self, session: AsyncSession, user_id: str | int

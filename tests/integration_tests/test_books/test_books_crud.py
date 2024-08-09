@@ -1,5 +1,3 @@
-from uuid import UUID
-
 import pytest
 from httpx import AsyncClient
 from application.cmd import app
@@ -20,7 +18,7 @@ async def get_admin_header() -> str:
 @pytest.mark.parametrize(
     "book_id,status_code",
     [
-        ("657dab80-50ff-45d9-a242-ac0357d97417", 200),
+        ("0b003aac-25dc-4fd6-8f89-e2ba796c6386", 200),
         ("0b003aac-25dc-4fd6-8f89-e2ba796c6385", 404),
     ],
 )
@@ -37,7 +35,7 @@ async def test_get_book_by_id(
 @pytest.mark.asyncio(scope="session")
 async def test_get_all_books():
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get(url="books/")
+        response = await ac.get(url="books?page=0&limit=5")
     assert response.status_code == 200
 
 

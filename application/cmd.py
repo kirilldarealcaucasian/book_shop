@@ -10,8 +10,9 @@ from application.api.rest.v1 import (
     order_router, book_router, user_router,
     publisher_router, author_router
 )
-from core.db_conf.db_settings import settings
+from core.config import settings
 from logger import logger
+from infrastructure.rabbitmq.connector import rabbit_connector
 
 redis = None
 
@@ -23,6 +24,9 @@ async def lifespan(app: FastAPI):
             redis = aioredis.from_url(
                 f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}", decode_responses=True)
             yield
+            logger.info("Shutting down . . .")
+            rabbit_connector.close_con()
+            rabbit_connector.create_chan()
             redis.close()
         except aioredis.exceptions.ConnectionError as e:
             yield None
@@ -31,7 +35,7 @@ async def lifespan(app: FastAPI):
             yield None
 
 
-app = FastAPI(prefix="v1", lifespan=lifespan)
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +63,7 @@ async def add_process_time_header(request: Request, call_next):
         "request_process_time": round(process_time, 3)
     })
     return response
+
 
 
 @app.get("/")

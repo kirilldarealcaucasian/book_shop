@@ -68,7 +68,6 @@ def hash_password(password: str, salt: str = conf.SALT) -> str:
     return hashed_password.decode()
 
 
-
 def validate_password(password: str, hashed_password: str) -> bool:
     if not (is_password_correct := checkpw(password.encode(), hashed_password.encode())
     ):

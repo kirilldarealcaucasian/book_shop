@@ -3,60 +3,93 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar
 from core.exceptions import RelatedEntityDoesNotExist, ServerError, EntityDoesNotExist, RepositoryResolutionError, \
-    FilterAttributeError
-from application.schemas import (CreateBookS,
-                                 CreateOrderS,
-                                 CreateImageS,
-                                 CreateAuthorS,
-                                 CreatePublisherS,
-                                 RegisterUserS,
-                                 UpdateBookS,
-                                 UpdateOrderS,
-                                 UpdateAuthorS,
-                                 UpdateUserS,
-                                 UpdatePublisherS,
-                                 UpdatePartiallyBookS,
-                                 UpdatePartiallyUserS,
-                                 UpdatePartiallyAuthorS,
-                                 UpdatePartiallyPublisherS,
-                                 ReturnBookS,
-                                 ReturnOrderS,
-                                 ReturnUserS,
-                                 ReturnImageS,
-                                 ReturnPublisherS, UpdatePartiallyOrderS
-                                 )
+    FilterAttributeError, DuplicateError
+from application.schemas import (
+    CreateBookS,
+    CreateOrderS,
+    CreateImageS,
+    CreateAuthorS,
+    CreatePublisherS,
+    RegisterUserS,
+    UpdateBookS,
+    UpdateOrderS,
+    UpdateAuthorS,
+    UpdateUserS,
+    UpdateCategoryS,
+    UpdatePublisherS,
+    UpdatePartiallyBookS,
+    UpdatePartiallyUserS,
+    UpdatePartiallyAuthorS,
+    UpdatePartiallyPublisherS,
+    ReturnBookS,
+    ReturnOrderS,
+    ReturnUserS,
+    ReturnImageS,
+    ReturnPublisherS, UpdatePartiallyOrderS,
+    CreateCategoryS, ReturnCategoryS,
+    ReturnShoppingSessionS, ShoppingSessionIdS,
+    CreateShoppingSessionS,
+    UpdatePartiallyShoppingSessionS
+)
+from application.schemas.domain_model_schemas import \
+    (
+    AuthorS,
+    BookS,
+    BookOrderAssocS,
+    CartItemS,
+    CategoryS,
+    OrderS,
+    PaymentDetailS,
+    PublisherS,
+    ShoppingSessionS
+)
+
 from logger import logger
 
 CreateDataT = TypeVar(
     "CreateDataT",
     CreateBookS, CreateOrderS, RegisterUserS,
-    CreateImageS, CreateAuthorS, CreatePublisherS
+    CreateImageS, CreateAuthorS, CreatePublisherS,
+    CreateCategoryS, CreateShoppingSessionS
 )
 
 UpdateDataT = TypeVar(
     "UpdateDataT",
     UpdateBookS, UpdateOrderS, UpdateUserS,
-    UpdateAuthorS, UpdateUserS, UpdatePublisherS, UpdatePartiallyOrderS
+    UpdateAuthorS, UpdateUserS, UpdatePublisherS,
+    UpdatePartiallyOrderS, UpdateCategoryS
 )
 
 PartialUpdateDataT = TypeVar(
     "PartialUpdateDataT",
     UpdatePartiallyBookS, UpdatePartiallyUserS,
-    UpdatePartiallyAuthorS, UpdatePartiallyPublisherS
+    UpdatePartiallyAuthorS, UpdatePartiallyPublisherS,
+    UpdatePartiallyShoppingSessionS
 )
 
 ReturnDataT = TypeVar(
     "ReturnDataT", ReturnBookS, ReturnOrderS,
-    ReturnUserS, ReturnImageS, ReturnPublisherS
+    ReturnUserS, ReturnImageS, ReturnPublisherS,
+    ReturnCategoryS, ReturnShoppingSessionS
 )
 
+CreateReturnDataT = TypeVar("CreateReturnDataT", ShoppingSessionIdS, None)
+
 ArgDataT = TypeVar("ArgDataT", str, int)
+
+DomainModelDataT = TypeVar(
+    "DomainModelDataT",
+    AuthorS, BookS, BookOrderAssocS,
+    CartItemS, CategoryS, OrderS,
+    PaymentDetailS, PublisherS, ShoppingSessionS
+)
 
 
 class RepositoryResolver:
     """
     returns desired repository from the EntityBaseService attributes
-    (EntityBaseService might be initialized by different repositories)
+    (EntityBaseService might be initialized by different repositories
+    from service layer)
     """
 
     def __init__(self, repository_pool: dict):
@@ -82,11 +115,12 @@ class EntityBaseService:
             self,
             repo: OrmEntityRepoInterface,
             session: AsyncSession,
-            dto: CreateDataT
-    ) -> None:
+            domain_model: DomainModelDataT
+    ) -> CreateReturnDataT:
+
         try:
             return await self.repository_resolver(repo).create(
-                data=dto.model_dump(),
+                data=domain_model,
                 session=session
             )
         except RepositoryResolutionError:
@@ -97,24 +131,26 @@ class EntityBaseService:
         except ServerError:
             raise ServerError(detail="Unable to create instance due to server error")
 
+        except DuplicateError:
+            raise
+
         except RelatedEntityDoesNotExist:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error in the provided data (cannot find related entity/entities)"
             )
 
-    async def update(self,
-                     repo: OrmEntityRepoInterface,
-                     session: AsyncSession,
-                     instance_id: ArgDataT,
-                     dto: UpdateDataT | PartialUpdateDataT
-                     ) -> ReturnDataT:
-
-        fixed_data = dto.model_dump(exclude_unset=True)
+    async def update(
+            self,
+            repo: OrmEntityRepoInterface,
+            session: AsyncSession,
+            instance_id: ArgDataT,
+            domain_model: DomainModelDataT
+    ) -> ReturnDataT:
         try:
             return await self.repository_resolver(repo).update(
                 instance_id=instance_id,
-                data=fixed_data,
+                domain_model=domain_model,
                 session=session,
             )
         except RepositoryResolutionError:
@@ -142,7 +178,6 @@ class EntityBaseService:
     ) -> list[ReturnDataT] | ReturnDataT:
         try:
             return await self.repository_resolver(repo).get_all(**filters, session=session)
-
         except RepositoryResolutionError:
             extra = {"repo", repo}
             logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
@@ -159,6 +194,24 @@ class EntityBaseService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
+
+    async def get_by_id(
+            self,
+            session: AsyncSession,
+            repo: OrmEntityRepoInterface,
+            id: int | str,
+    ) -> ReturnDataT | None:
+        try:
+            return (await self.repository_resolver(repo).get_all(id=id, session=session))[0]
+        except (RepositoryResolutionError, IndexError) as e:
+            extra = {"repo", repo}
+            if isinstance(e, RepositoryResolutionError):
+                logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
+                raise ServerError(detail="Unable to retrieve instance/instances due to server error")
+            elif isinstance(e, IndexError):
+                logger.debug("No instance was received", extra=extra)
+                # fix: find out entity type
+                return None
 
     async def delete(
             self,

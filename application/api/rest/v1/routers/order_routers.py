@@ -2,7 +2,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import db_config
+from infrastructure.postgres import db_client
 from application.schemas import CreateOrderS, ReturnOrderS, ShortenedReturnOrderS, QuantityS, \
     UpdatePartiallyOrderS
 from application.schemas.filters import PaginationS
@@ -10,13 +10,13 @@ from application.services import OrderService
 from core.utils.cache import cachify
 from auth.services.permission_service import PermissionService
 
-router = APIRouter(prefix="/orders", tags=["Orders CRUD"])
+router = APIRouter(prefix="v1/orders", tags=["Orders CRUD"])
 
 
 @router.get("", status_code=status.HTTP_200_OK, response_model=list[ShortenedReturnOrderS] | None)
 async def get_all_orders(
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         pagination: PaginationS = Depends()
 ):
     return await service.get_all_orders(session=session, pagination=pagination)
@@ -31,7 +31,7 @@ async def get_all_orders(
 async def get_order_by_id(
         order_id: int,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
 ):
     return await service.get_order_by_id(session=session, order_id=order_id)
 
@@ -40,7 +40,7 @@ async def get_order_by_id(
 async def get_order_by_user_id(
         user_id: int,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.get_user_orders(session=session, user_id=user_id)
 
@@ -49,7 +49,7 @@ async def get_order_by_user_id(
 async def create_order(
         data: CreateOrderS,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.create_order(session=session, data=data)
 
@@ -63,7 +63,7 @@ async def create_order(
 async def delete_order(
         order_id: int,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.delete_order(session=session, order_id=order_id)
 
@@ -78,7 +78,7 @@ async def add_book_to_order(
         book_id: str | int,
         quantity: QuantityS,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.add_book_to_order(
         session=session,
@@ -92,7 +92,7 @@ async def add_book_to_order(
 async def delete_book_from_order(
         order_id: int,
         book_id: str,
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         service: OrderService = Depends()
 ) -> None:
     return await service.delete_book_from_order(
@@ -107,7 +107,7 @@ async def update_order(
         order_id: str,
         update_data: UpdatePartiallyOrderS,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.update_order(
         session=session,
@@ -122,6 +122,6 @@ async def update_order(
 async def make_order(
         order_id: int,
         service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.make_order(session=session, order_id=order_id)

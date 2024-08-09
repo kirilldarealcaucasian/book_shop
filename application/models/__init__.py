@@ -7,6 +7,10 @@ from application.models.models import (
         Author,
         Publisher,
         Image,
+        Category,
+        ShoppingSession,
+        CartItem,
+        PaymentDetail
 )
 
 __all__ = (
@@ -18,4 +22,8 @@ __all__ = (
     "Author",
     "Publisher",
     "Image",
+    "Category",
+    "ShoppingSession",
+    "CartItem",
+    "PaymentDetail"
 )

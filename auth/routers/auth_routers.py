@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth.services.auth_service import AuthService
 from application.schemas import RegisterUserS, LoginUserS, ReturnUserS, AuthenticatedUserS
-from core import db_config
+from infrastructure.postgres import db_client
 from auth.schemas.token_schema import AccessToken
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 
-router = APIRouter(prefix="/auth", tags=['Authentication and Authorization'])
+router = APIRouter(prefix="v1/auth", tags=['Authentication and Authorization'])
 http_bearer = HTTPBearer()
 
 
@@ -17,7 +17,7 @@ http_bearer = HTTPBearer()
              )
 async def register_user(
         data: RegisterUserS,
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         service: AuthService = Depends()
 ):
     return await service.register_user(session=session, data=data)
@@ -28,7 +28,7 @@ async def register_user(
              response_model=AccessToken)
 async def login_user(
         creds: LoginUserS,
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         service: AuthService = Depends()
 ):
     return await service.authorize_user(session=session, user_creds=creds)
@@ -36,7 +36,7 @@ async def login_user(
 
 @router.get('/me', response_model=AuthenticatedUserS)
 async def get_currently_authed_user(
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         service: AuthService = Depends(),
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
 ):

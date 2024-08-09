@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
-from core import db_config
+from infrastructure.postgres import db_client
 from application.services import ImageService
 
 
-router = APIRouter(prefix="/images/books", tags=["Images"])
+router = APIRouter(prefix="v1/images/books", tags=["Images"])
 
 
 @router.get("/{book_isbn}", status_code=status.HTTP_200_OK)
 async def get_all_images(
         book_id: str,
         service: ImageService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.get_all_images(session=session, book_id=book_id)
 
@@ -22,7 +22,7 @@ async def create_image(
         book_id: str,
         file: UploadFile = File(...),
         service: ImageService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ) -> None:
     return await service.upload_image(
         session=session,
@@ -35,7 +35,7 @@ async def create_image(
 async def delete_image(
         image_id: int,
         service: ImageService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ) -> None:
     return await service.delete_image(session=session,
                                       image_id=image_id,

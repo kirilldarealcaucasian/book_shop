@@ -5,12 +5,11 @@ from typing_extensions import Annotated
 
 from auth.services import AuthService
 from auth.repositories import AuthRepository
-from core.base_repos import OrmEntityRepoInterface
 from application.models import Order
 from application.repositories import OrderRepository
 from application.repositories.order_repo import CombinedOrderRepositoryInterface
 from application.services import OrderService
-from core.db_conf.config import db_config
+from infrastructure.postgres import db_client
 from core.exceptions import UnauthorizedError
 
 
@@ -35,7 +34,7 @@ class PermissionService(AuthRepository):
             order_repo: Annotated[CombinedOrderRepositoryInterface, Depends(OrderRepository)],
             order_service: OrderService = Depends(),
             credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-            session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+            session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
     ) -> int:
         payload: dict = AuthService.get_token_payload(credentials=credentials)
         user_id = payload["user_id"]

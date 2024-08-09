@@ -2,15 +2,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, asyn
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import AsyncGenerator
 
-from core import settings
 from asyncio import current_task
-from abc import ABC
 from logger import logger
+from core.config import settings
 
 
-class AbstractDbConfig(ABC):
-    __slots__ = ("engine", "async_session")
-
+class PostgresClient:
     def __init__(self, url, echo: bool = False):
         try:
             self.engine = create_async_engine(url=url, echo=echo)
@@ -34,10 +31,13 @@ class AbstractDbConfig(ABC):
         try:
             async with scoped_factory() as s:
                 yield s
+        except BaseException as e:
+            logger.error("failed to create scope session", exc_info=True)
         finally:
             await scoped_factory.remove()
 
 
-db_config = AbstractDbConfig(
+db_client = PostgresClient(
     url=settings.get_db_url,
-    echo=False)
+    echo=False
+)

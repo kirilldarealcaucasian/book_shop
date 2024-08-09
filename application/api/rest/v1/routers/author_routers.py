@@ -4,7 +4,7 @@ from fastapi import Depends, status, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.services.permission_service import PermissionService
-from core import db_config
+from infrastructure.postgres import db_client
 from core.utils.cache import cachify
 from application.schemas import (
     ReturnAuthorS,
@@ -14,13 +14,13 @@ from application.schemas import (
 )
 from application.services import AuthorService
 
-router = APIRouter(prefix="/authors", tags=["Authors"])
+router = APIRouter(prefix="v1/authors", tags=["Authors"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[ReturnAuthorS] | None)
 async def get_all_authors(
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.get_all_authors(session=session)
 
@@ -34,7 +34,7 @@ async def get_all_authors(
 async def get_author_by_id(
         author_id: int,
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
 ):
     return await service.get_authors_by_filters(session=session, author_id=author_id)
 
@@ -43,7 +43,7 @@ async def get_author_by_id(
 async def create_author(
         data: CreateAuthorS,
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.create_author(session=session, dto=data)
 
@@ -55,7 +55,7 @@ async def create_author(
 async def delete_author(
         author_id: int,
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.delete_author(session=session, author_id=author_id)
 
@@ -65,7 +65,7 @@ async def update_author(
         author_id: int,
         update_data: UpdateAuthorS,
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.update_author(
         session=session,
@@ -79,7 +79,7 @@ async def update_author_partially(
         author_id: int,
         update_data: UpdatePartiallyAuthorS,
         service: AuthorService = Depends(),
-        session: AsyncSession = Depends(db_config.get_scoped_session_dependency)
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.update_author(
         session=session,

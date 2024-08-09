@@ -39,7 +39,7 @@ class ImageService(EntityBaseService):
         image: UploadFile,
     ):
         book: list[ReturnBookS] | None = await self.book_service\
-            .get_books_by_filters(
+            .get_book_by_id(
             session=session, id=book_id
         )
 

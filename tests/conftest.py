@@ -5,7 +5,8 @@ import pytest_asyncio
 import asyncio
 from httpx import AsyncClient
 from sqlalchemy import insert
-from core import settings, db_config
+from core.config import settings
+from infrastructure.postgres import db_client
 from application.models import Base, User, Book, BookOrderAssoc, Author, Publisher, Order, Image
 from application.cmd import app
 import os
@@ -15,7 +16,7 @@ import os
 async def prepare_database():
     assert settings.MODE == "TEST"
 
-    async with db_config.engine.begin() as con:
+    async with db_client.engine.begin() as con:
         await con.run_sync(Base.metadata.drop_all)
         await con.run_sync(Base.metadata.create_all)
 
@@ -34,7 +35,7 @@ async def prepare_database():
     db_models = [User, Book, Author, Publisher, Order, BookOrderAssoc, Image]
     db_to_add_data = [users,  books, authors, publishers, orders, book_order_assoc, images]
 
-    async with db_config.async_session() as session:
+    async with db_client.async_session() as session:
         for model, data in zip(db_models, db_to_add_data):
             stmt = insert(model).values(data)
             await session.execute(stmt)

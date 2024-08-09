@@ -1,8 +1,11 @@
-from sqlalchemy.orm import validates
+from datetime import datetime
 
+from sqlalchemy import TIMESTAMP, func
+from sqlalchemy.orm import validates, Mapped, mapped_column, declared_attr
 
 __all__ = (
     "FirstLastNameValidationMixin",
+    "TimestampMixin"
 )
 
 
@@ -23,3 +26,18 @@ class FirstLastNameValidationMixin:
                 "Last name should be at least 2 characters"
             )
         return last_name
+
+
+class TimestampMixin:
+    @declared_attr
+    def created_at(cls) -> Mapped[datetime]:
+        return mapped_column(
+            TIMESTAMP(timezone=True), server_default=func.now(), default=datetime.now()
+
+        )
+
+    @declared_attr
+    def updated_at(cls) -> Mapped[datetime]:
+        return mapped_column(
+            TIMESTAMP(timezone=True), server_default=func.now(), default=datetime.now()
+        )

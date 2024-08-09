@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Protocol
 
@@ -52,6 +51,7 @@ class OrmEntityRepoInterface(Protocol):
             **filters,
     ):
         ...
+
 
     async def update(
             self,

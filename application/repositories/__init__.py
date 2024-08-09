@@ -5,7 +5,8 @@ __all__ = [
     "UserRepository",
     "AuthorRepository",
     "PublisherRepository",
-    "OrmEntityUserInterface"
+    "OrmEntityUserInterface",
+    "ShoppingSessionRepository"
 ]
 
 from application.repositories.author_repo import AuthorRepository
@@ -14,3 +15,4 @@ from application.repositories.image_repo import ImageRepository
 from application.repositories.order_repo import OrderRepository
 from application.repositories.publisher_repo import PublisherRepository
 from application.repositories.user_repo import UserRepository, OrmEntityUserInterface, OrmEntityUserInterface
+from application.repositories.shopping_session_repo import ShoppingSessionRepository

@@ -1,5 +1,6 @@
 from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Duration
 from dotenv import load_dotenv
 
 __all__ = (
@@ -9,11 +10,13 @@ __all__ = (
 load_dotenv()
 
 
-class DBSettings(BaseSettings):
+class Settings(BaseSettings):
     MODE: Literal["DEV", "TEST"]
 
-    DB_USER: str
     LOG_LEVEL: str
+    LOGS_JOURNAL_PATH: str
+
+    DB_USER: str
     DB_PASSWORD: str
     DB_SERVER: str
     DB_PORT: int
@@ -28,6 +31,13 @@ class DBSettings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
 
+    RABBIT_USER: str
+    RABBIT_PASSWORD: str
+    Rabbit_HOST: str
+    Rabbit_PORT: int
+
+    SHOPPING_SESSION_DURATION: Duration
+
     model_config = SettingsConfigDict(env_file=".env")
 
     @property
@@ -39,7 +49,4 @@ class DBSettings(BaseSettings):
             return f"postgresql+asyncpg://{cls.TEST_POSTGRES_USER}:{cls.TEST_POSTGRES_PASSWORD}@{cls.TEST_POSTGRES_SERVER}:{cls.TEST_POSTGRES_PORT}/{cls.TEST_POSTGRES_DB}"
 
 
-settings = DBSettings()
-
-
-
+settings = Settings()

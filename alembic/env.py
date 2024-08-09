@@ -6,7 +6,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from core import settings
+from core.config import settings
 from application.models import (
         Base,
         User,
@@ -16,6 +16,9 @@ from application.models import (
         Publisher,
         Book,
         Image,
+        ShoppingSession,
+        CartItem,
+        PaymentDetail
 )
 
 from dotenv import load_dotenv

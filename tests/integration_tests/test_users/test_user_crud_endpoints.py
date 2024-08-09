@@ -20,7 +20,7 @@ async def get_admin_header() -> str:
 @pytest.mark.asyncio(scope="session")
 @pytest.mark.parametrize(
     "user_id,status_code",
-    [(1, 200), (100, 404)]
+    [(2, 200), (100, 404)]
 )
 async def test_get_user_by_id(
         user_id: int,

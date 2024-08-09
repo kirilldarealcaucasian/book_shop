@@ -3,33 +3,70 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from logger import logger
-from core.exceptions import RelatedEntityDoesNotExist, ServerError, EntityDoesNotExist, DuplicateError
+from core.exceptions.storage_exceptions import (
+    DuplicateError,
+    DBError, NotFoundError
+)
 from sqlalchemy.exc import NoSuchTableError, NoSuchColumnError, NoReferenceError
+from typing import TypeVar
+from application.schemas.domain_model_schemas import \
+    (
+    AuthorS,
+    BookS,
+    BookOrderAssocS,
+    CartItemS,
+    CategoryS,
+    OrderS,
+    PaymentDetailS,
+    PublisherS,
+    ShoppingSessionS
+)
+
+DomainModelDataT = TypeVar(
+    "DomainModelDataT",
+    AuthorS, BookS, BookOrderAssocS,
+    CartItemS, CategoryS, OrderS,
+    PaymentDetailS, PublisherS, ShoppingSessionS
+)
 
 
 class OrmEntityRepository:
     model = None
 
-    async def create(self,
-                     session: AsyncSession,
-                     data: dict,
-                     ) -> None:
-        to_add = self.model(**data)
+    async def create(
+            self,
+            session: AsyncSession,
+            data: DomainModelDataT,
+    ) -> None:
+        """inserts domain model into db. We can explicitly
+        convert data to dict in the respective repository and pass it here.Likewise,
+        data can be passed via inheritance(when we do not
+        implement any specific logic in the respective repo,
+        the repo uses methods of its parent, therefore we need CreateDomainModelDataT)"""
+
+        to_add = None
+        try:
+            to_add = self.model(data.model_dump(exclude_unset=True))
+        except Exception as e:
+            logger.error(
+                "Model resolution error: Error while creating a domain model"
+            )
+            raise DBError("Error while creating a domain model")
+
         try:
             session.add(to_add)
             await session.commit()
-
         except NoSuchTableError:
             extra = {"model": self.model, "data": data}
             logger.error(f"Creation error: Error while creating {self.model.__name__}: Table does not exist",
                          extra=extra,
                          exc_info=True)
-            raise ServerError(f"Table for {self.model} does not exist")
+            raise DBError(f"Table for {self.model} does not exist")
 
         except NoSuchColumnError as e:
             logger.error(f"Creation error: Error while creating {self.model.__name__}: Column does not exist", extra=e,
                          exc_info=True)
-            raise ServerError("Unable to create instance due to server error")
+            raise DBError("Unable to create instance due to server error")
 
         except IntegrityError as e:
             logger.error(f"Creation error: Error while creating {self.model.__name__}: unique violation level: {e}")
@@ -41,7 +78,7 @@ class OrmEntityRepository:
                 data,
                 exc_info=True
             )
-            raise RelatedEntityDoesNotExist
+            raise DBError
 
     async def get_all(self,
                       session: AsyncSession,
@@ -52,24 +89,21 @@ class OrmEntityRepository:
         stmt = select(self.model).filter_by(**filters).offset(page * limit).limit(limit)
 
         try:
-            res: list | [] = (await session.scalars(stmt)).all()
-            print("RES: ", res)
-            if len(res) == 1:
-                return res[0]
+            domain_models: list | [] = (await session.scalars(stmt)).all()
         except NoSuchTableError:
             extra = {"model": self.model}
             logger.error(f"Creation error: Error while creating {self.model}: Table does not exist", extra=extra,
                          exc_info=True)
-            raise ServerError(f"Table for {self.model} does not exist")
+            raise DBError(f"Table for {self.model} does not exist")
 
-        if not res:
-            raise EntityDoesNotExist(entity=self.model.__name__)
+        if not domain_models:
+            raise NotFoundError(entity=self.model.__name__)
 
-        return list(res)
+        return list(domain_models)
 
     async def update(
             self,
-            data: dict,
+            data: DomainModelDataT,
             instance_id: str | int,
             session: AsyncSession,
     ) -> None:
@@ -101,17 +135,17 @@ class OrmEntityRepository:
                 data,
                 exc_info=True
             )
-            raise RelatedEntityDoesNotExist
+            raise DBError
 
     async def delete(self,
                      session: AsyncSession,
                      instance_id: int | str,
                      ) -> None:
-
         try:
             instance = await self.get_all(session=session, id=instance_id)
         except IndexError:
-            raise EntityDoesNotExist(entity=self.model.__name__)
+            logger.warning("Trying to delete entity that doesn't exist")
+            raise NotFoundError(entity=self.model.__name__)
 
         try:
             await session.delete(instance)
@@ -122,7 +156,7 @@ class OrmEntityRepository:
             logger.error(f"Deletion error: Error while deleting {self.model.__name__}: Table does not exist",
                          extra=extra,
                          exc_info=True)
-            raise ServerError(f"Table for {self.model.__name__} does not exist")
+            raise DBError(f"Table for {self.model.__name__} does not exist")
 
     async def commit(self, session: AsyncSession):
         try:

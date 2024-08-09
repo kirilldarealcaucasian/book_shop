@@ -56,7 +56,7 @@ class OrderService(EntityBaseService):
     async def create_order(
         self, session: AsyncSession, data: CreateOrderS
     ) -> None:
-        _ = await self.user_service.get_users_with_filters(
+        _ = await self.user_service.get_user_by_id(
             session=session, id=data.user_id
         )  # if no exception was raised
 
@@ -120,9 +120,13 @@ class OrderService(EntityBaseService):
             user_id=user_id,
         )
 
-        user: ReturnUserS = await self.user_service.get_users_with_filters(
-            session=session, id=user_id
-        )
+        try:
+            user: ReturnUserS = (await self.user_service.get_user_by_id(
+                session=session, id=user_id)
+            )[0]
+        except IndexError:
+            raise EntityDoesNotExist("User")
+
 
         books_metadata: dict[OrderId:int, books_data : list[AssocBookS]] = (
             defaultdict(list)

@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 
 
 __all__ = (
-    "DuplicateError",
+    "AlreadyExistsError",
     "RelatedEntityDoesNotExist",
     "ServerError",
     "EntityDoesNotExist",
@@ -13,7 +13,7 @@ __all__ = (
 )
 
 
-class DuplicateError(HTTPException):
+class AlreadyExistsError(HTTPException):
     def __init__(self, entity):
         super().__init__(
             detail=f"{entity} already exists",

@@ -17,31 +17,39 @@ from application.repositories import BookRepository, ImageRepository
 from application.services.storage import StorageServiceInterface
 from application.services.storage.internal_storage import InternalStorageService
 from typing import Annotated, Literal
+from application.schemas.domain_model_schemas import BookS
 
 
 class BookService(EntityBaseService):
     def __init__(
-        self,
-        storage: Annotated[StorageServiceInterface, Depends(InternalStorageService)],
-        book_repo: Annotated[OrmEntityRepoInterface, Depends(BookRepository)],
-        image_repo: Annotated[
-            OrmEntityRepoInterface, Depends(ImageRepository)
-        ],
+            self,
+            storage: Annotated[StorageServiceInterface, Depends(InternalStorageService)],
+            # you can inject 1 of 2 storage implementations
+            book_repo: Annotated[OrmEntityRepoInterface, Depends(BookRepository)],
+            image_repo: Annotated[
+                OrmEntityRepoInterface, Depends(ImageRepository)
+            ],
     ):
         self.book_repo = book_repo
         self.image_repo = image_repo
         super().__init__(book_repo=book_repo, image_repo=image_repo)
         self.storage: StorageServiceInterface = storage
 
-    async def get_books_by_filters(
-        self, session: AsyncSession, **filters
+    async def get_book_by_id(
+            self,
+            session: AsyncSession,
+            id: str
     ) -> list[ReturnBookS]:
-        return await super().get_all(
-            repo=self.book_repo, session=session, **filters
-        )
+        return [
+            await super().get_all(
+                repo=self.book_repo,
+                session=session,
+                id=id
+            )
+        ]
 
     async def get_all_books(
-        self, session: AsyncSession, filters: BookFilterS
+            self, session: AsyncSession, filters: BookFilterS
     ) -> list[ReturnBookS]:
         key_value_filters = {}
         if filters.filterby:
@@ -70,16 +78,20 @@ class BookService(EntityBaseService):
         )
 
     async def create_book(
-        self, session: AsyncSession, dto: CreateBookS
+            self, session: AsyncSession, dto: CreateBookS
     ) -> None:
+        dto: dict = dto.model_dump(exclude_none=True)
+        domain_model = BookS(**dto)
         return await super().create(
-            repo=self.book_repo, session=session, dto=dto
+            repo=self.book_repo,
+            session=session,
+            domain_model=domain_model
         )
 
     async def delete_book(
-        self,
-        session: AsyncSession,
-        book_id: str,
+            self,
+            session: AsyncSession,
+            book_id: str,
     ) -> None:
         try:
             _: list[ReturnImageS] = await super().get_all(
@@ -94,11 +106,15 @@ class BookService(EntityBaseService):
         )
 
     async def update_book(
-        self,
-        session: AsyncSession,
-        book_id: str | int,
-        data: UpdateBookS | UpdatePartiallyBookS,
+            self,
+            session: AsyncSession,
+            book_id: str | int,
+            dto: UpdateBookS | UpdatePartiallyBookS,
     ) -> ReturnBookS:
+        dto: dict = dto.model_dump(exclude_none=True)
+        domain_model = BookS(**dto)
         return await super().update(
-            repo=self.book_repo, session=session, instance_id=book_id, dto=data
+            repo=self.book_repo,
+            session=session,
+            instance_id=book_id, dto=data
         )

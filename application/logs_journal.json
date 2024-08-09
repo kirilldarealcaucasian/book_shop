@@ -1,0 +1,3 @@
+{"timestamp": "2024-08-02T15:33:42.214230Z", "level": "INFO", "pathname": "C:\\proj\\ecommerce\\infrastructure\\postgres\\app.py", "message": "Successful db connection via: postgresql+asyncpg://postgres:postgres@localhost:5433/proj_db"}
+{"timestamp": "2024-08-02T15:33:44.780803Z", "level": "INFO", "pathname": "C:\\proj\\ecommerce\\infrastructure\\postgres\\app.py", "message": "Successful db connection via: postgresql+asyncpg://postgres:postgres@localhost:5433/proj_db"}
+{"timestamp": "2024-08-02T15:33:45.634803Z", "level": "INFO", "pathname": "C:\\proj\\ecommerce\\venv\\lib\\site-packages\\watchfiles\\main.py", "message": "1 change detected"}
