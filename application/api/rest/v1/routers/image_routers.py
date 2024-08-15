@@ -5,7 +5,7 @@ from infrastructure.postgres import db_client
 from application.services import ImageService
 
 
-router = APIRouter(prefix="v1/images/books", tags=["Images"])
+router = APIRouter(prefix="/v1/images/books", tags=["Images"])
 
 
 @router.get("/{book_isbn}", status_code=status.HTTP_200_OK)

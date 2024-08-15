@@ -8,13 +8,12 @@ from auth.repositories import AuthRepository
 from application.models import Order
 from application.repositories import OrderRepository
 from application.repositories.order_repo import CombinedOrderRepositoryInterface
-from application.services import OrderService
+from application.services import OrderService, UserService
 from infrastructure.postgres import db_client
 from core.exceptions import UnauthorizedError
 
 
 class PermissionService(AuthRepository):
-
 
     @staticmethod
     def get_admin_permission(
@@ -57,5 +56,15 @@ class PermissionService(AuthRepository):
             )
         return user_id
 
+    async def get_authorized_permission(
+            self,
+            credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+            user_service: UserService = Depends(),
+            session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
+    ):
+        "Checks if the user is logged in"
 
-
+        payload: dict = AuthService.get_token_payload(credentials=credentials)
+        user_id = payload["user_id"]
+        _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user,  exception
+        # will be raised by user_service

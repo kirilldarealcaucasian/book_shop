@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from application import User
+from application.models import User
 from application.schemas import ReturnUserS
 from auth.schemas.token_schema import TokenPayload
 from auth import helpers
@@ -42,9 +42,10 @@ class AuthRepository:
                           data: dict,
                           session: AsyncSession
                           ) -> ReturnUserS:
-        user_exists: User | None = await self.retrieve_user_by_email(session=session,
-                                                                     email=data["email"]
-                                                                     )
+        user_exists: User | None = await self.retrieve_user_by_email(
+            session=session,
+            email=data["email"]
+        )
         if not user_exists:
             user = User(**data)
             user.email.lower()

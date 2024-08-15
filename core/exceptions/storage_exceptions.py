@@ -15,8 +15,15 @@ class DBError(BaseException):
 
 
 class NotFoundError(BaseException):
-    def __init__(self, entity):
-        self.entity = entity
 
     def __str__(self):
-        return f"{self.entity} wasn't found"
+        return "Entity wasn't found"
+
+
+class DeletionError(BaseException):
+    def __init__(self, entity, info):
+        def __init__(self, entity):
+            self.entity = entity
+
+        def __str__(self):
+            return f"{self.entity} wasn't deleted: {info}"

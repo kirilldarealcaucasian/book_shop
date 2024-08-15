@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, async_scoped_session, AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, DatabaseError
 from typing_extensions import AsyncGenerator
 
 from asyncio import current_task
@@ -31,12 +31,11 @@ class PostgresClient:
         try:
             async with scoped_factory() as s:
                 yield s
-        except BaseException as e:
-            logger.error("failed to create scope session", exc_info=True)
         finally:
             await scoped_factory.remove()
 
 
+# client to access db
 db_client = PostgresClient(
     url=settings.get_db_url,
     echo=False

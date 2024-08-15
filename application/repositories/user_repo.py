@@ -10,40 +10,12 @@ from application.schemas.order_schemas import (
     AssocBookS,
 )
 from application.models import User, Order, BookOrderAssoc
-from typing import Protocol
+from typing import Protocol, Union
+
+from core.base_repos import OrmEntityRepoInterface
 
 
-class OrmEntityUserInterface(Protocol):
-
-    async def create(
-            self,
-            data: dict,
-            session: AsyncSession
-    ):
-        ...
-
-    async def get_all(
-            self,
-            session: AsyncSession,
-            **filters,
-    ):
-        ...
-
-    async def update(
-            self,
-            data: dict,
-            instance_id: int,
-            session: AsyncSession,
-    ):
-        ...
-
-    async def delete(
-            self,
-            session: AsyncSession,
-            instance_id: int,
-    ):
-        ...
-
+class UserInterface(Protocol):
     async def get_user_with_orders(
             self,
             session: AsyncSession,
@@ -60,6 +32,9 @@ class OrmEntityUserInterface(Protocol):
 
     async def commit(self, session: AsyncSession):
         ...
+
+
+UnitedUserInterface = Union[UserInterface, OrmEntityRepoInterface]
 
 
 class UserRepository(OrmEntityRepository):

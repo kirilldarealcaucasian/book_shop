@@ -16,7 +16,7 @@ from auth.services.permission_service import PermissionService
 from core.utils.cache import cachify
 
 
-router = APIRouter(prefix="v1/users", tags=["Users"])
+router = APIRouter(prefix="/v1/users", tags=["Users"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
@@ -77,7 +77,7 @@ async def update_user(
     return await service.update_user(
         session=session,
         user_id=user_id,
-        data=update_data
+        dto=update_data
     )
 
 
@@ -91,5 +91,5 @@ async def update_user_partially(
     return await service.update_user(
         session=session,
         user_id=user_id,
-        data=update_data
+        dto=update_data
     )

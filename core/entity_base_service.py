@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar
 from core.exceptions import RelatedEntityDoesNotExist, ServerError, EntityDoesNotExist, RepositoryResolutionError, \
-    FilterAttributeError, DuplicateError
+    FilterAttributeError, DuplicateError, NotFoundError
 from application.schemas import (
     CreateBookS,
     CreateOrderS,
@@ -41,7 +41,8 @@ from application.schemas.domain_model_schemas import \
     OrderS,
     PaymentDetailS,
     PublisherS,
-    ShoppingSessionS
+    ShoppingSessionS,
+    ImageS, UserS
 )
 
 from logger import logger
@@ -79,9 +80,10 @@ ArgDataT = TypeVar("ArgDataT", str, int)
 
 DomainModelDataT = TypeVar(
     "DomainModelDataT",
-    AuthorS, BookS, BookOrderAssocS,
-    CartItemS, CategoryS, OrderS,
-    PaymentDetailS, PublisherS, ShoppingSessionS
+    UserS, AuthorS, BookS,
+    BookOrderAssocS, CartItemS, CategoryS,
+    OrderS, PaymentDetailS, PublisherS,
+    ShoppingSessionS, ImageS,
 )
 
 
@@ -120,7 +122,7 @@ class EntityBaseService:
 
         try:
             return await self.repository_resolver(repo).create(
-                data=domain_model,
+                domain_model=domain_model,
                 session=session
             )
         except RepositoryResolutionError:
@@ -177,7 +179,9 @@ class EntityBaseService:
             **filters
     ) -> list[ReturnDataT] | ReturnDataT:
         try:
-            return await self.repository_resolver(repo).get_all(**filters, session=session)
+            res = await self.repository_resolver(repo).get_all(**filters, session=session)
+            if not res:
+                raise NotFoundError()
         except RepositoryResolutionError:
             extra = {"repo", repo}
             logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
@@ -188,12 +192,12 @@ class EntityBaseService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to get instance due to server error"
             )
-
         except FilterAttributeError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
+        return res
 
     async def get_by_id(
             self,
@@ -201,17 +205,17 @@ class EntityBaseService:
             repo: OrmEntityRepoInterface,
             id: int | str,
     ) -> ReturnDataT | None:
+        res = []
         try:
-            return (await self.repository_resolver(repo).get_all(id=id, session=session))[0]
-        except (RepositoryResolutionError, IndexError) as e:
+            res: list = (await self.repository_resolver(repo).get_all(id=id, session=session))
+            if not res or res is None:
+                raise NotFoundError()
+        except (RepositoryResolutionError) as e:
             extra = {"repo", repo}
             if isinstance(e, RepositoryResolutionError):
                 logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
                 raise ServerError(detail="Unable to retrieve instance/instances due to server error")
-            elif isinstance(e, IndexError):
-                logger.debug("No instance was received", extra=extra)
-                # fix: find out entity type
-                return None
+        return res[0]
 
     async def delete(
             self,

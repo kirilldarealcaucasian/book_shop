@@ -1,14 +1,19 @@
+from sqlalchemy import ResultProxy
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 __all__ = (
     "EntityRepoInterface",
     "OrmEntityRepoInterface"
 )
+
+DomainModelDataT = TypeVar("DomainModelDataT",)
+
+
 class EntityRepoInterface(Protocol):
     async def create(
             self,
-            data: dict,
+            domain_model: DomainModelDataT,
             session: AsyncSession | None,
     ):
         ...
@@ -22,7 +27,7 @@ class EntityRepoInterface(Protocol):
 
     async def update(
             self,
-            data: dict,
+            domain_model: DomainModelDataT,
             instance_id: int,
             session: AsyncSession | None,
     ):
@@ -40,7 +45,7 @@ class OrmEntityRepoInterface(Protocol):
 
     async def create(
             self,
-            data: dict,
+            domain_model: DomainModelDataT,
             session: AsyncSession
     ):
         ...
@@ -55,7 +60,7 @@ class OrmEntityRepoInterface(Protocol):
 
     async def update(
             self,
-            data: dict,
+            domain_model: DomainModelDataT,
             instance_id: int,
             session: AsyncSession,
     ):
@@ -70,6 +75,7 @@ class OrmEntityRepoInterface(Protocol):
 
     async def commit(self, session: AsyncSession):
         ...
+
 
 
 

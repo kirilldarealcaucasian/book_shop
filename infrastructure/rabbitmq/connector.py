@@ -7,7 +7,7 @@ from logger import logger
 from dataclasses import dataclass, field
 
 
-__all__ = ("rabbit_connector",)
+# __all__ = ("rabbit_connector",)
 
 
 @dataclass
@@ -123,23 +123,23 @@ class RabbitConnector:
             logger.error("Failed to close connection", extra=self.creds)
 
 
-rabbit_connector = RabbitConnector(
-    host=settings.Rabbit_HOST,
-    user=settings.RABBIT_USER,
-    password=settings.RABBIT_PASSWORD,
-    port=settings.Rabbit_PORT
-)
-
-rabbit_connector.create_connection()
-rabbit_connector.create_chan()
-
-rabbit_connector.create_queue(
-    q_name="logs_q",
-    is_passive=False,
-    is_durable=True,
-    is_exclusive=False,
-    is_auto_delete=False,
-)
+# rabbit_connector = RabbitConnector(
+#     host=settings.Rabbit_HOST,
+#     user=settings.RABBIT_USER,
+#     password=settings.RABBIT_PASSWORD,
+#     port=settings.Rabbit_PORT
+# )
+#
+# rabbit_connector.create_connection()
+# rabbit_connector.create_chan()
+#
+# rabbit_connector.create_queue(
+#     q_name="logs_q",
+#     is_passive=False,
+#     is_durable=True,
+#     is_exclusive=False,
+#     is_auto_delete=False,
+# )
 
 
 

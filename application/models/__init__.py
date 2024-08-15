@@ -10,7 +10,9 @@ from application.models.models import (
         Category,
         ShoppingSession,
         CartItem,
-        PaymentDetail
+        PaymentDetail,
+        CartItem,
+        BookCategoryAssoc
 )
 
 __all__ = (
@@ -25,5 +27,7 @@ __all__ = (
     "Category",
     "ShoppingSession",
     "CartItem",
-    "PaymentDetail"
+    "PaymentDetail",
+    "CartItem",
+    "BookCategoryAssoc"
 )

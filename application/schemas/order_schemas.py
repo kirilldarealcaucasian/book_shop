@@ -2,6 +2,9 @@ from pydantic import BaseModel, EmailStr, Field
 from application.schemas.book_schemas import BookSummaryS
 from application.schemas.base_schemas import OrderBaseS
 from datetime import datetime
+from typing import TypeAlias
+
+Category: TypeAlias = str
 
 
 class CreateOrderS(OrderBaseS):
@@ -27,7 +30,7 @@ class OrderSummaryS(BaseModel):
 class AssocBookS(BaseModel):
     book_title: str
     authors: list[str]
-    genre_name: str
+    categories: list[Category]
     rating: int
     discount: int
     count_ordered: int

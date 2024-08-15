@@ -1,5 +1,5 @@
 from core import OrmEntityRepository
-from application.models import Image, Category
+from application.models import  Category
 
 
 class CategoryRepository(OrmEntityRepository):

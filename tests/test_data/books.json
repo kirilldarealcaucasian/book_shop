@@ -6,7 +6,6 @@
     "description": "book 2",
     "price_per_unit": 100,
     "number_in_stock": 10,
-    "genre_name": "Horror",
     "rating": 4,
     "discount": 20
   },
@@ -17,7 +16,6 @@
     "description": "book for update",
     "price_per_unit": 10,
     "number_in_stock": 15,
-    "genre_name": "Fantasy",
     "rating": 3,
     "discount": 2
   },
@@ -28,7 +26,6 @@
     "description": "book for teeest",
     "price_per_unit": 12,
     "number_in_stock": 50,
-    "genre_name": "Fantasy",
     "rating": 3,
     "discount": 10
   },
@@ -39,8 +36,27 @@
     "description": "book for deletion",
     "price_per_unit": 100,
     "number_in_stock": 10,
-    "genre_name": "Fantasy",
     "rating": 0,
+    "discount": 0
+  },
+  {
+    "id": "20aaefdc-ab3b-4074-af87-dc26a36bb6a0",
+    "isbn":"00000000000000",
+    "name": "Example book",
+    "description": "example book",
+    "price_per_unit": 349,
+    "number_in_stock": 250,
+    "rating": 5,
+    "discount": 0
+  },
+  {
+    "id": "d2bafd10-4192-4930-aa40-9bcf4b39a848",
+    "isbn":"11111111",
+    "name": "Example book 2 ",
+    "description": "example book 2",
+    "price_per_unit": 500,
+    "number_in_stock": 222,
+    "rating": 3,
     "discount": 0
   }
 ]

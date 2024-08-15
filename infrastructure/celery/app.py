@@ -10,13 +10,13 @@ celery = Celery(
     include=["application.tasks.tasks1"],
 )
 
-celery.conf.beat_schedule = {
-    'save-logs-every-minute': {
-        'task': 'application.tasks.tasks1.save_log',
-        'schedule': crontab(minute='*/1'),  # run every minute
-        'args': (),
-    },
-}
+# celery.conf.beat_schedule = {
+#     'save-logs-every-minute': {
+#         'task': 'application.tasks.tasks1.save_log',
+#         'schedule': crontab(minute='*/1'),  # run every minute
+#         'args': (),
+#     },
+# }
 
 celery.conf.event_serializer = 'pickle'
 celery.conf.task_serializer = 'pickle'

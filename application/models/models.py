@@ -1,6 +1,5 @@
 from uuid import uuid4
 from sqlalchemy import (
-    func,
     ForeignKey,
     UniqueConstraint,
     Date,
@@ -10,17 +9,17 @@ from sqlalchemy import (
     BIGINT,
     Computed,
     DateTime,
-    Index
+    Index, MetaData, Table, Column
 )
-import uuid
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship, DeclarativeBase, declared_attr, validates,
+    relationship, DeclarativeBase, declared_attr,
 )
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing_extensions import Literal
 from application.models.mixins import FirstLastNameValidationMixin, TimestampMixin
+
 
 __all__ = (
     "Base",
@@ -39,9 +38,19 @@ __all__ = (
 
 Gender = Literal["male", "female"]
 
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
 
 class Base(DeclarativeBase):
     __abstract__ = True
+
+    metadata = MetaData(naming_convention=convention)
 
     type_annotation_map = {
         int: BIGINT,
@@ -55,20 +64,47 @@ class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
+BookCategoryAssoc = Table(
+    "book_category_assoc",
+    Base.metadata,
+    Column('book_id', ForeignKey('books.id'), primary_key=True),
+    Column('category_id', ForeignKey('categories.id'), primary_key=True)
+)  # secondary table
+
+
 class Category(Base, TimestampMixin):
     __tablename__ = "categories"
+
+    __table_args__ = (UniqueConstraint(
+        "name", name="uq_categories_name"),
+    )
     name: Mapped[str] = mapped_column(unique=True)
 
+    # relationships
+    books: Mapped[list["Book"]] = relationship(
+        secondary="book_category_assoc",
+        back_populates="categories"
+    )  # gets books of this category
 
-class Book(Base):
-    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True)
+    def __repr__(self):
+        return f"""Category(
+            id={self.id},
+            name={self.name}
+        )"""
+
+
+class Book(Base, TimestampMixin):
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True,
+        server_default=str(uuid4()), default=uuid4(), unique=True)
     isbn: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     name: Mapped[str]
     description: Mapped[str | None]
     price_per_unit: Mapped[float]
-    price_with_discount: Mapped[float] = mapped_column(Double, Computed("price_per_unit - (price_per_unit * (discount*0.01))"))
+    price_with_discount: Mapped[float] = mapped_column(Double, Computed(
+        "price_per_unit - (price_per_unit * (discount*0.01))")
+                                                       )
     number_in_stock: Mapped[int]
-    category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"))
     rating: Mapped[float | None]
     discount: Mapped[int | None]
 
@@ -79,48 +115,35 @@ class Book(Base):
     authors: Mapped[list["Author"]] = relationship(back_populates="books")
     cart_items: Mapped[list["CartItem"]] = relationship(back_populates="book")
 
-    @validates("price_per_unit")
-    def validate_price_per_unit(self, key, price_per_unit):
-        if price_per_unit < 1:
-            raise ValueError(
-                "Minimum price per unit is 1"
-            )
-        return price_per_unit
-
-    @validates("id")
-    def validate_id(self, key, id: str):
-        try:
-            uuid.UUID(id)
-        except ValueError:
-            raise ValueError(
-                "Incorrect uuid"
-            )
-        return True
+    #  relationships
+    categories: Mapped[list["Category"]] = relationship(
+        secondary="book_category_assoc",
+        back_populates="books"
+    )  # gets categories of this book
 
     def __repr__(self):
         return f"""
         Book(
+        id={self.id}
         isbn={self.isbn},
         name={self.name},
         description={self.description[:30]},
         price_per_unit={self.price_per_unit},
         price_with_discount={self.price_with_discount}
         number_in_stock={self.number_in_stock},
-        category_id={self.category_id},
         rating={self.rating},
-        discount={self.discount}
+        discount={self.discount},
+        created_at={self.created_at},
+        updated_at={self.updated_at}
         )"""
 
 
-class User(Base, FirstLastNameValidationMixin):
+class User(Base, FirstLastNameValidationMixin, TimestampMixin):
     first_name: Mapped[str]
     last_name: Mapped[str]
     gender: Mapped[Gender] = mapped_column(String)
     email: Mapped[str] = mapped_column(String, unique=True)
     hashed_password: Mapped[str]
-    registration_date: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now()
-    )
     role_name: Mapped[str | None] = mapped_column(default="user", server_default="user")
     date_of_birth: Mapped[date | None] = mapped_column(Date, server_default=None)
 
@@ -130,14 +153,6 @@ class User(Base, FirstLastNameValidationMixin):
 
     shopping_session: Mapped["ShoppingSession"] = relationship(back_populates="user")
 
-    @validates("email")
-    def validate_email(self, key, address):
-        if "@" not in address or "." not in address:
-            raise ValueError(
-                "Incorrect email format"
-            )
-        return address
-
     def __repr__(self):
         return f"""
         User(
@@ -146,19 +161,42 @@ class User(Base, FirstLastNameValidationMixin):
         last_name={self.last_name},
         gender: {self.gender},
         email={self.email},
-        registration_date={self.registration_date},
+        hashed_password={self.hashed_password}
         role_name={self.role_name}
-        date_of_birth={self.date_of_birth})
+        date_of_birth={self.date_of_birth},
+        created_at={self.created_at},
+        updated_at={self.updated_at}
+        )
                 """
 
 
+class PaymentDetail(Base, TimestampMixin):
+    __tablename__ = "payment_details"
+
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), unique=True)
+    status: Mapped[str] = mapped_column(server_default="pending", default="pending")
+    payment_provider: Mapped[str | None]
+    amount: Mapped[float] = mapped_column(default=0.0, server_default="0.0")
+
+    # relationships
+    order: Mapped["Order"] = relationship(back_populates="payment_detail")
+
+    def __repr__(self):
+        return f"""PaymentDetail(
+            id={self.id},
+            order_id={self.order_id},
+            status={self.status},
+            payment_provider={self.payment_provider},
+            amount={self.amount} 
+        )"""
+
+
 class Order(Base):
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     order_status: Mapped[str | None] = mapped_column(default="pending", server_default="pending")
     order_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     total_sum: Mapped[float | None] = mapped_column(Double)
-    payment_id: Mapped[str | None] = mapped_column(ForeignKey("payment_details.id", ondelete="RESTRICT"))
-
+    # payment_id: Mapped[str | None] = mapped_column(ForeignKey("payment_details.id", ondelete="RESTRICT"))
 
     # relationships
     order_details: Mapped[list["BookOrderAssoc"]] = relationship(
@@ -173,20 +211,27 @@ class Order(Base):
     user: Mapped["User"] = relationship(back_populates="orders")
 
     def __repr__(self):
-        return f"Order(id={self.id}, user_id={self.user_id}, total_sum={self.total_sum})"
+        return f"""Order(
+        id={self.id}, 
+        user_id={self.user_id},
+        order_status={self.order_status},
+        order_date={self.order_date},
+        total_sum={self.total_sum},
+        total_sum={self.total_sum})"""
 
 
 class BookOrderAssoc(Base):
+    __tablename__ = "book_order_assoc"
 
     __table_args__ = (
-        UniqueConstraint("order_id", "book_id", name="idx_unique_book_order_key"),
+        UniqueConstraint("order_id", "book_id", name="uq_book_order_assoc_order_id_book_id"),
     )
 
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
     book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"))
     count_ordered: Mapped[int] = mapped_column(default=1, server_default="1")
 
-    # realtionships
+    # relationships
     book: Mapped["Book"] = relationship(back_populates="book_details")
     order: Mapped["Order"] = relationship(back_populates="order_details")
 
@@ -204,17 +249,18 @@ class BookOrderAssoc(Base):
 class Author(Base, FirstLastNameValidationMixin):
     first_name: Mapped[str]
     last_name: Mapped[str]
-
     book_id: Mapped[str | None] = mapped_column(ForeignKey("books.id", ondelete="SET NULL"))
 
+    # relationships
     books: Mapped[list["Book"]] = relationship(back_populates="authors")
 
     def __repr__(self):
         return f"""
             Author(
-            author_id={self.id},
-            author_first_name={self.first_name},
-            author_last_name={self.last_name}
+            id={self.id},
+            first_name={self.first_name},
+            last_name={self.last_name},
+            book_id={self.book_id}
             )
             """
 
@@ -222,7 +268,6 @@ class Author(Base, FirstLastNameValidationMixin):
 class Publisher(Base, FirstLastNameValidationMixin):
     first_name: Mapped[str]
     last_name: Mapped[str]
-
     book_id: Mapped[str | None] = mapped_column(ForeignKey("books.id", ondelete="SET NULL"))
 
     # relationships
@@ -230,10 +275,11 @@ class Publisher(Base, FirstLastNameValidationMixin):
 
     def __repr__(self):
         return f"""
-            Author(
-            publisher_id={self.id},
-            publisher_first_name={self.first_name},
-            publisher_last_name={self.last_name}
+            Publisher(
+            id={self.id},
+            first_name={self.first_name},
+            last_name={self.last_name},
+            book_id={self.book_id}
             )
             """
 
@@ -242,42 +288,55 @@ class ShoppingSession(Base, TimestampMixin):
     __tablename__ = "shopping_sessions"
 
     __table_args__ = (
-        Index("idx_expiration_time", "expiration_time")
+        Index("ix_shopping_sessions", "expiration_time"),
     )
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), default=uuid4(),
+        server_default=str(uuid4()), primary_key=True,
+        unique=True
+    )
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), unique=True)
-    total: Mapped[float | None]
-    expiration_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    total: Mapped[float | None] = mapped_column(server_default="0", default=0)
+    expiration_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=str(datetime.now() + timedelta(days=1)),
+        default=datetime.now() + timedelta(days=1)
+    )
 
+    # relationships
     user: Mapped["User"] = relationship(back_populates="shopping_session")
-    cart_item: Mapped["ShoppingSession"] = relationship(back_populates="shopping_session")
+    cart_item: Mapped["CartItem"] = relationship(back_populates="shopping_session")
+
+    def __repr__(self):
+        return f"""ShoppingSession(
+            id={self.id},
+            user_id={self.user_id},
+            total={self.total},
+            expiration_time={self.expiration_time}
+        )
+            """
 
 
 class CartItem(Base, TimestampMixin):
     __tablename__ = "cart_items"
 
-    __table_args__ = (
-        UniqueConstraint("session_id", "book_id", name="idx_unique_book_session_key"),
-    )
-
-    session_id: Mapped[str] = mapped_column(ForeignKey("shopping_sessions.id", ondelete="CASCADE"))
-    book_id: Mapped[str] = mapped_column(ForeignKey("books.id", ondelete="RESTRICTED"))
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id", ondelete="CASCADE"), primary_key=True)
+    book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), primary_key=True, )
     quantity: Mapped[int]
 
+    __mapper_args__ = {'primary_key': [session_id, book_id]}  # composite primary key
+
+    # relationships
     book: Mapped["Book"] = relationship(back_populates="cart_items")
     shopping_session: Mapped["ShoppingSession"] = relationship(back_populates="cart_item")
 
-
-class PaymentDetail(Base, TimestampMixin):
-    __tablename__ = "payment_details"
-
-    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), unique=True)
-    status: Mapped[str] = mapped_column(server_default="pending", default="pending")
-    payment_provider: Mapped[str | None]
-    amount: Mapped[float] = mapped_column(default=0.0, server_default="0.0")
-
-    order: Mapped["Order"] = relationship(back_populates="payment_detail")
+    def __repr__(self):
+        return f"""CartItem(
+            id={self.id},
+            book_id={self.book_id},
+            quantity={self.quantity},
+        )"""
 
 
 class Image(Base):

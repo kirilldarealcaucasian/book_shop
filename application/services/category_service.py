@@ -1,14 +1,18 @@
 from fastapi import Depends
+from pydantic import ValidationError, PydanticSchemaGenerationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.repositories.category_repo import CategoryRepository
+from application.schemas.domain_model_schemas import CategoryS
 from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
-from core.exceptions import EntityDoesNotExist
+from core.exceptions import EntityDoesNotExist, DomainModelConversionError
 from application.schemas import (
     ReturnCategoryS, CreateCategoryS, UpdateCategoryS,
 )
 from typing import Annotated
+
+from logger import logger
 
 
 class CategoryService(EntityBaseService):
@@ -58,10 +62,21 @@ class CategoryService(EntityBaseService):
             session: AsyncSession,
             dto: CreateCategoryS,
     ):
+        dto: dict = dto.model_dump(exclude_unset=True)
+        try:
+            domain_model = CategoryS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
         return await super().create(
             repo=self.category_repo,
             session=session,
-            dto=dto
+            domain_model=domain_model
         )
 
     async def update_category(
@@ -70,9 +85,20 @@ class CategoryService(EntityBaseService):
             instance_id: int | str,
             dto: UpdateCategoryS
     ):
+        dto: dict = dto.model_dump(exclude_unset=True)
+        try:
+            domain_model = CategoryS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
         return await super().update(
             repo=self.category_repo,
             session=session,
             instance_id=instance_id,
-            dto=dto,
+            domain_model=domain_model,
         )

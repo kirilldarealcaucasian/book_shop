@@ -9,7 +9,7 @@ class ReturnBookS(BookBaseS):
     price_per_unit: float
     number_in_stock: int
     isbn: str
-    genre_name: str
+    genre_names: list[str]
     rating: float | None
     discount: int
 

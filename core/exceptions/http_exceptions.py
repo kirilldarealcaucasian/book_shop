@@ -50,7 +50,7 @@ class EntityDoesNotExist(HTTPException):
 
 
 class ServerError(HTTPException):
-    def __init__(self, detail: str | Exception):
+    def __init__(self, detail="something went wrong"):
         super().__init__(
             detail=detail,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -73,3 +73,13 @@ class RepositoryResolutionError(ValueError):
 class FilterAttributeError(AttributeError):
     def __init__(self):
         super().__init__("Invalid filter name / value")
+
+
+class DomainModelConversionError(HTTPException):
+    def __init__(self, detail: str | Exception):
+        super().__init__(
+            detail=detail,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+

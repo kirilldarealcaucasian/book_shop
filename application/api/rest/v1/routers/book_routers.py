@@ -1,7 +1,6 @@
 from uuid import UUID
 from fastapi import Depends, status, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth.services.permission_service import PermissionService
 from application.services import BookService
 from infrastructure.postgres import db_client
 from application.schemas import (ReturnBookS,
@@ -14,7 +13,7 @@ from datetime import timedelta
 from application.schemas import BookFilterS
 
 
-router = APIRouter(prefix="v1/books", tags=["Books CRUD"])
+router = APIRouter(prefix="/v1/books", tags=["Books CRUD"])
 
 
 @router.get("", status_code=status.HTTP_200_OK, response_model=list[ReturnBookS] | None)
@@ -70,7 +69,7 @@ async def update_book(
     return await service.update_book(
         session=session,
         book_id=str(book_id),
-        data=update_data
+        dto=update_data
     )
 
 
@@ -84,5 +83,5 @@ async def update_book_partially(
     return await service.update_book(
         session=session,
         book_id=str(book_id),
-        data=update_data
+        dto=update_data
     )

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Literal
 
 from core import OrmEntityRepository
-from core.exceptions import InvalidModelCredentials, FilterAttributeError, ServerError
+from core.exceptions import FilterAttributeError, ServerError
 from application.models import Book
 
 
@@ -110,18 +110,3 @@ class BookRepository(OrmEntityRepository):
         except (StatementError, InvalidRequestError) as e:
             logging.error("Error while trying to perform request to db:", exc_info=True)
             raise ServerError("Unexpected server error")
-
-    async def update(
-            self,
-            data: dict,
-            instance_id: str | int,
-            session: AsyncSession,
-    ) -> None:
-
-        try:
-            self.model(**data).validate_id(key="id", id=instance_id)
-        except ValueError:
-            raise InvalidModelCredentials(
-                message="Invalid id format for book"
-            )
-        return await super().update(session=session, data=data, instance_id=instance_id)

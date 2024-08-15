@@ -8,13 +8,15 @@ from auth.routers import auth_router
 from application.api.rest.v1 import (
     image_router,
     order_router, book_router, user_router,
-    publisher_router, author_router
+    publisher_router, author_router, cart_router
 )
 from core.config import settings
 from logger import logger
-from infrastructure.rabbitmq.connector import rabbit_connector
+from sqlalchemy import MetaData
+# from infrastructure.rabbitmq.connector import rabbit_connector
 
 redis = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,15 +27,14 @@ async def lifespan(app: FastAPI):
                 f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}", decode_responses=True)
             yield
             logger.info("Shutting down . . .")
-            rabbit_connector.close_con()
-            rabbit_connector.create_chan()
+            # rabbit_connector.close_con()
+            # rabbit_connector.create_chan()
             redis.close()
         except aioredis.exceptions.ConnectionError as e:
             yield None
 
         except ConnectionResetError as e:
             yield None
-
 
 app = FastAPI(lifespan=lifespan)
 
@@ -46,10 +47,9 @@ app.add_middleware(
 )
 
 for router in (
-        book_router,
-        order_router, user_router,
-        image_router, auth_router,
-        publisher_router, author_router
+        book_router, order_router,
+        user_router, image_router, auth_router,
+        publisher_router, author_router, cart_router
 ):
     app.include_router(router)
 
@@ -63,7 +63,6 @@ async def add_process_time_header(request: Request, call_next):
         "request_process_time": round(process_time, 3)
     })
     return response
-
 
 
 @app.get("/")

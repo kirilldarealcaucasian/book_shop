@@ -10,7 +10,7 @@ from application.services import OrderService
 from core.utils.cache import cachify
 from auth.services.permission_service import PermissionService
 
-router = APIRouter(prefix="v1/orders", tags=["Orders CRUD"])
+router = APIRouter(prefix="/v1/orders", tags=["Orders CRUD"])
 
 
 @router.get("", status_code=status.HTTP_200_OK, response_model=list[ShortenedReturnOrderS] | None)
@@ -51,7 +51,7 @@ async def create_order(
         service: OrderService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
-    return await service.create_order(session=session, data=data)
+    return await service.create_order(session=session, dto=data)
 
 
 @router.delete(
@@ -112,7 +112,7 @@ async def update_order(
     return await service.update_order(
         session=session,
         order_id=order_id,
-        data=update_data
+        dto=update_data
     )
 
 

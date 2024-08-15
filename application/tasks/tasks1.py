@@ -12,7 +12,7 @@ from application.tasks.helpers import email_generator, parse_logs_journal
 from pathlib import Path
 from logger import logger
 from infrastructure.mail import MailClient
-from infrastructure.rabbitmq import rabbit_publisher
+# from infrastructure.rabbitmq import rabbit_publisher
 
 
 def create_image_folder(concrete_image_folder_name: str) -> str:

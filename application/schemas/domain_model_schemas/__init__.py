@@ -7,7 +7,9 @@ __all__ = (
     "OrderS",
     "PaymentDetailS",
     "PublisherS",
-    "ShoppingSessionS"
+    "ShoppingSessionS",
+    "ImageS",
+    "UserS"
 )
 
 from application.schemas.domain_model_schemas.author import AuthorS
@@ -19,3 +21,5 @@ from application.schemas.domain_model_schemas.order import OrderS
 from application.schemas.domain_model_schemas.payment_details import PaymentDetailS
 from application.schemas.domain_model_schemas.publisher import PublisherS
 from application.schemas.domain_model_schemas.shopping_session import ShoppingSessionS
+from application.schemas.domain_model_schemas.image import ImageS
+from application.schemas.domain_model_schemas.user import UserS

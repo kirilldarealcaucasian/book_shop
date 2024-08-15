@@ -18,7 +18,10 @@ from application.models import (
         Image,
         ShoppingSession,
         CartItem,
-        PaymentDetail
+        PaymentDetail,
+        CartItem,
+        BookCategoryAssoc,
+        Category
 )
 
 from dotenv import load_dotenv

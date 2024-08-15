@@ -2,6 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from application.schemas.domain_model_schemas import AuthorS
 from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
 from application.repositories import AuthorRepository
@@ -11,6 +13,10 @@ from application.schemas import (
     UpdateAuthorS,
     UpdatePartiallyAuthorS,
 )
+from pydantic import ValidationError, PydanticSchemaGenerationError
+
+from core.exceptions import DomainModelConversionError
+from logger import logger
 
 
 class AuthorService(EntityBaseService):
@@ -39,9 +45,22 @@ class AuthorService(EntityBaseService):
         )
 
     async def create_author(
-        self, session: AsyncSession, dto: CreateAuthorS
+        self,
+        session: AsyncSession,
+        dto: CreateAuthorS
     ) -> None:
-        await super().create(repo=self.author_repo, session=session, dto=dto)
+        dto: dict = dto.model_dump(exclude_unset=True)
+        try:
+            domain_model = AuthorS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
+        await super().create(repo=self.author_repo, session=session, domain_model=domain_model)
 
     async def delete_author(
         self, session: AsyncSession, author_id: int
@@ -56,9 +75,17 @@ class AuthorService(EntityBaseService):
         session: AsyncSession,
         data: UpdateAuthorS | UpdatePartiallyAuthorS,
     ):
+        dto: dict = data.model_dump(exclude_unset=True)
+        try:
+            domain_model = AuthorS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            extra = {"dto": dto}
+            logger.error("failed to convert to domain model", extra, exc_info=True)
+            raise DomainModelConversionError
+
         await super().update(
             repo=self.author_repo,
             session=session,
-            dto=data,
+            domain_model=domain_model,
             instance_id=author_id,
         )

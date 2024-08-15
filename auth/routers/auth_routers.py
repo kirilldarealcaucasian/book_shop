@@ -7,7 +7,7 @@ from auth.schemas.token_schema import AccessToken
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 
-router = APIRouter(prefix="v1/auth", tags=['Authentication and Authorization'])
+router = APIRouter(prefix="/v1/auth", tags=['Authentication and Authorization'])
 http_bearer = HTTPBearer()
 
 

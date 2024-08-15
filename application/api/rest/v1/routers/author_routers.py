@@ -14,7 +14,7 @@ from application.schemas import (
 )
 from application.services import AuthorService
 
-router = APIRouter(prefix="v1/authors", tags=["Authors"])
+router = APIRouter(prefix="/v1/authors", tags=["Authors"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[ReturnAuthorS] | None)

@@ -12,7 +12,7 @@ from application.schemas import (
 )
 from application.services import CategoryService
 
-router = APIRouter(prefix="v1/categories", tags=["Ctegories"])
+router = APIRouter(prefix="/v1/categories", tags=["Categories"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[ReturnCategoryS])

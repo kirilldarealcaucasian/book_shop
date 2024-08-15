@@ -56,6 +56,7 @@ class OrderRepositoryInterface(Protocol):
 
 
 CombinedOrderRepositoryInterface = Union[OrderRepositoryInterface, OrmEntityRepoInterface]
+
 OrderId: TypeAlias = str
 books_data: TypeAlias = str
 
@@ -111,7 +112,6 @@ class OrderRepository(OrmEntityRepository):
         order_res = (await session.scalars(stmt)).one_or_none()
         return order_res
 
-
     async def get_order_with_books_by_id_with_order_details(
             self,
             session: AsyncSession,
@@ -125,7 +125,7 @@ class OrderRepository(OrmEntityRepository):
             or_(and_(BookOrderAssoc.order_id == order_id, BookOrderAssoc.book_id == book_id), Order.id == order_id))
 
         try:
-            order: Order | [] = (await session.scalars(stmt)).all()[0]
+            order: Order = (await session.scalars(stmt)).all()[0]
         except IndexError:
             raise EntityDoesNotExist(entity="Order")
         return order
@@ -138,15 +138,3 @@ class OrderRepository(OrmEntityRepository):
         stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.order_details))
         order: Order = (await session.scalars(stmt)).one_or_none()
         return order
-
-    async def update(
-            self,
-            data: dict,
-            instance_id: str | int,
-            session: AsyncSession
-    ) -> None:
-        return await super().update(
-            session=session,
-            data=data,
-            instance_id=int(instance_id),
-        )

@@ -5,6 +5,7 @@ from core.image_conf.conf import ImageConfig
 # from application.static import STATIC_FOLDER_ABSOLUTE_PATH
 import datetime
 
+from logger import logger
 
 def get_image_format(image: File) -> str:
     format: str = image.filename.split(".")[1]
@@ -37,6 +38,8 @@ def create_image_folder(concrete_image_folder_name: str) -> str:
     except FileExistsError:
         pass
     except OSError as e:
+        extra={"image_folder": image_folder}
+        logger.error("failed to create image folder", exc_info=True, extra=extra)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"{e}"

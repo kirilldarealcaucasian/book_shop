@@ -1,10 +1,13 @@
 from collections import defaultdict
 from fastapi import Depends, HTTPException, status
+from pydantic import ValidationError, PydanticSchemaGenerationError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from application.schemas.domain_model_schemas import OrderS
 from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
-from core.exceptions import EntityDoesNotExist, InvalidModelCredentials
+from core.exceptions import EntityDoesNotExist, InvalidModelCredentials, DomainModelConversionError
 from application import Book
 from application.helpers.uuid_helpers import is_valid_uuid
 from application.models import Order, BookOrderAssoc
@@ -54,14 +57,28 @@ class OrderService(EntityBaseService):
         self.book_service = book_service
 
     async def create_order(
-        self, session: AsyncSession, data: CreateOrderS
+        self, session: AsyncSession, dto: CreateOrderS
     ) -> None:
+        dto: dict = dto.model_dump(exclude_unset=True)
+
+        try:
+            domain_model = OrderS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
         _ = await self.user_service.get_user_by_id(
-            session=session, id=data.user_id
+            session=session, id=domain_model.user_id
         )  # if no exception was raised
 
         return await super().create(
-            repo=self.order_repo, session=session, dto=data
+            repo=self.order_repo,
+            session=session,
+            domain_model=domain_model
         )
 
     async def get_all_orders(
@@ -127,7 +144,6 @@ class OrderService(EntityBaseService):
         except IndexError:
             raise EntityDoesNotExist("User")
 
-
         books_metadata: dict[OrderId:int, books_data : list[AssocBookS]] = (
             defaultdict(list)
         )  # stores books and order ids in which books are contained
@@ -172,13 +188,24 @@ class OrderService(EntityBaseService):
         self,
         session: AsyncSession,
         order_id: int | str,
-        data: UpdatePartiallyOrderS,
+        dto: UpdatePartiallyOrderS,
     ):
+        dto: dict = dto.model_dump(exclude_unset=True)
+        try:
+            domain_model = OrderS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
         return await super().update(
             repo=self.order_repo,
             session=session,
             instance_id=order_id,
-            dto=data,
+            domain_model=domain_model,
         )
 
     async def add_book_to_order(

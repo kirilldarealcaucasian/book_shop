@@ -1,11 +1,16 @@
 from typing import Annotated
 
 from fastapi import Depends
+from pydantic import ValidationError, PydanticSchemaGenerationError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from application.schemas.domain_model_schemas import PublisherS
 from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
 from application.repositories import PublisherRepository
 from application.schemas import CreatePublisherS, ReturnPublisherS
+from core.exceptions import DomainModelConversionError
+from logger import logger
 
 
 class PublisherService(EntityBaseService):
@@ -29,10 +34,25 @@ class PublisherService(EntityBaseService):
         )
 
     async def create_publisher(
-        self, session: AsyncSession, dto: CreatePublisherS
+        self,
+        session: AsyncSession,
+        dto: CreatePublisherS
     ) -> None:
+        dto: dict = dto.model_dump(exclude_unset=True)
+        try:
+            domain_model = PublisherS(**dto)
+        except (ValidationError, PydanticSchemaGenerationError) as e:
+            logger.error(
+                "Failed to generate domain model",
+                extra={"dto": dto},
+                exc_info=True
+            )
+            raise DomainModelConversionError
+
         await super().create(
-            repo=self.publisher_repo, session=session, dto=dto
+            repo=self.publisher_repo,
+            session=session,
+            domain_model=domain_model
         )
 
     async def delete_publisher(

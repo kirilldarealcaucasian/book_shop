@@ -17,7 +17,7 @@ class ImageData(TypedDict):
 
 
 class ImageManager:
-    # validates image credentials and generates url
+    # validates image credentials(size, format) and generates url
 
     @staticmethod
     async def image_validate(image: UploadFile, image_format) -> bool:
@@ -52,17 +52,17 @@ class ImageManager:
         )  # unique identifier of an image
         image_folder_url = path.join(
             image_folder, image_folder_name
-        )  # path to folder where the image is stored (like images/1)
+        )  # path to image folder (like images/1)
         image_url = (
             path.join(image_folder_url, image_identifier) + f".{format}"
-        )  # path to folder where the image is
+        )  # path to the image (like images/1/2024-08-02-35.jpeg)
 
         relative_concrete_image_path = path.join(
             ImageConfig.static_folder_path, image_url
-        )  # path up to static folder merged with image_url
+        )  # path up to static folder merged with image_url (like static/images/1/2024-08-02-35.jpeg)
         absolute_concrete_image_path = path.abspath(
             relative_concrete_image_path
-        )  # absolute path to the image
+        )  # absolute path to the merged with static/images/1/2024-08-02-35.jpeg
 
         return ImageData(
             image_url=absolute_concrete_image_path,
@@ -72,11 +72,12 @@ class ImageManager:
     async def __call__(
         self, image: UploadFile, image_folder_name: str
     ) -> ImageData:
-        format = image.content_type.split("/")[1]
+        fmt = image.content_type.split("/")[1]
+
         try:
             if await self.image_validate(image=image, image_format=format):
                 return self.construct_image_url(
-                    format=format, image_folder_name=image_folder_name
+                    format=fmt, image_folder_name=image_folder_name
                 )
         except (IOError, OSError) as e:
             logger.error(f"Error while opening image file: {e}", exc_info=True)

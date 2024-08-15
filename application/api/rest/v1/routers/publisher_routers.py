@@ -14,7 +14,7 @@ from application.schemas import (
 )
 from application.services import PublisherService
 
-router = APIRouter(prefix="v1/publishers", tags=["Publishers"])
+router = APIRouter(prefix="/v1/publishers", tags=["Publishers"])
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[ReturnPublisherS] | None)

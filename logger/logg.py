@@ -29,13 +29,13 @@ formatter = CustomJsonFormatter('%(timestamp)s %(level)s %(pathname)s: %(message
 logger = logging.getLogger()
 
 # define format for logs in the logs journal and where to write logs
-file_handler = logging.FileHandler(
-    filename=os.path.normpath(LOGS_JOURNAL_PATH),
-    mode="a"
-)
+# file_handler = logging.FileHandler(
+#     # filename=os.path.normpath(LOGS_JOURNAL_PATH),
+#     mode="a"
+# )
 
-file_handler.setLevel(LOG_LEVEL)
-file_handler.setFormatter(formatter)
+# file_handler.setLevel(LOG_LEVEL)
+# file_handler.setFormatter(formatter)
 
 
 # define format for logs in the console and where to stream logs
@@ -44,5 +44,5 @@ logHandler.setFormatter(formatter)
 logger.setLevel(LOG_LEVEL)
 
 
-logger.addHandler(file_handler)
+# logger.addHandler(file_handler)
 logger.addHandler(logHandler)
