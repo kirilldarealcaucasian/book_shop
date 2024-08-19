@@ -29,10 +29,9 @@ async def lifespan(app: FastAPI):
             logger.info("Shutting down . . .")
             # rabbit_connector.close_con()
             # rabbit_connector.create_chan()
-            redis.close()
+            await redis.close()
         except aioredis.exceptions.ConnectionError as e:
             yield None
-
         except ConnectionResetError as e:
             yield None
 

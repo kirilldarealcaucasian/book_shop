@@ -1,19 +1,18 @@
-from datetime import timedelta
 from fastapi import APIRouter, Depends, status, Body, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.services.cart_service import CartService
 from infrastructure.postgres import db_client
-from application.schemas import ReturnOrderS, AddBookToCartS, ReturnCartS
-from core.utils.cache import cachify
+from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS
 from auth.services.permission_service import PermissionService
 from uuid import UUID
 
 
 router = APIRouter(prefix="/v1/cart", tags=["Cart"])
 
+
 @router.get(
-    "/session/{session_id}",
+    "/sessions/{session_id}",
     status_code=status.HTTP_200_OK,
     response_model=ReturnCartS
 )
@@ -29,7 +28,7 @@ async def get_cart_by_session_id(
 
 
 @router.get(
-    "/user/{user_id}",
+    "/users/{user_id}",
     status_code=status.HTTP_200_OK
 )
 async def get_cart_by_user_id(
@@ -44,16 +43,15 @@ async def get_cart_by_user_id(
 
 
 @router.post(
-    '/{user_id}',
+    '/',
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(PermissionService().get_authorized_permission)]
+    response_model=ShoppingSessionIdS,
 )
 async def create_cart(
-        user_id: str | int,
         service: CartService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
-    return await service.create_cart(session=session, user_id=user_id)
+    return await service.create_cart(session=session)
 
 
 @router.delete(

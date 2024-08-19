@@ -17,6 +17,7 @@ from application.schemas import (
 from application.schemas.filters import PaginationS
 from core.exceptions import EntityDoesNotExist, DomainModelConversionError, NotFoundError
 from logger import logger
+import tracemalloc
 
 
 class UserService(EntityBaseService):
@@ -24,8 +25,9 @@ class UserService(EntityBaseService):
         self,
         user_repo: Annotated[UnitedUserInterface, Depends(UserRepository)],
     ):
-        super().__init__(user_repo=user_repo)
         self.user_repo = user_repo
+        super().__init__(user_repo=user_repo)
+
 
     async def get_all_users(
         self, session: AsyncSession, pagination: PaginationS

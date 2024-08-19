@@ -9,7 +9,7 @@ from sqlalchemy import (
     BIGINT,
     Computed,
     DateTime,
-    Index, MetaData, Table, Column
+    Index, MetaData, Table, Column, Integer
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -67,8 +67,8 @@ class Base(DeclarativeBase):
 BookCategoryAssoc = Table(
     "book_category_assoc",
     Base.metadata,
-    Column('book_id', ForeignKey('books.id'), primary_key=True),
-    Column('category_id', ForeignKey('categories.id'), primary_key=True)
+    Column('book_id', UUID, ForeignKey('books.id'), primary_key=True),
+    Column('category_id', Integer, ForeignKey('categories.id'), primary_key=True)
 )  # secondary table
 
 
@@ -83,7 +83,6 @@ class Category(Base, TimestampMixin):
     # relationships
     books: Mapped[list["Book"]] = relationship(
         secondary="book_category_assoc",
-        back_populates="categories"
     )  # gets books of this category
 
     def __repr__(self):
@@ -118,7 +117,6 @@ class Book(Base, TimestampMixin):
     #  relationships
     categories: Mapped[list["Category"]] = relationship(
         secondary="book_category_assoc",
-        back_populates="books"
     )  # gets categories of this book
 
     def __repr__(self):

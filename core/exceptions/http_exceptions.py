@@ -50,7 +50,7 @@ class EntityDoesNotExist(HTTPException):
 
 
 class ServerError(HTTPException):
-    def __init__(self, detail="something went wrong"):
+    def __init__(self, detail: str = "Something went wrong"):
         super().__init__(
             detail=detail,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

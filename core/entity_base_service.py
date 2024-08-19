@@ -1,9 +1,10 @@
+from functools import wraps
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_repos import OrmEntityRepoInterface
-from typing import TypeVar
+from typing import TypeVar, Callable
 from core.exceptions import RelatedEntityDoesNotExist, ServerError, EntityDoesNotExist, RepositoryResolutionError, \
-    FilterAttributeError, DuplicateError, NotFoundError
+    FilterAttributeError, DuplicateError, NotFoundError, AlreadyExistsError, DBError
 from application.schemas import (
     CreateBookS,
     CreateOrderS,
@@ -104,8 +105,41 @@ class RepositoryResolver:
         raise RepositoryResolutionError
 
 
+def perform_logging(func: Callable):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        kwargs = dict(kwargs)
+        repo = kwargs.get("repo", None)
+        domain_model = kwargs.get("domain_model", None)
+
+        if domain_model:
+            extra = {"repo": kwargs["repo"], "domain_model": kwargs["domain_model"]}
+        else:
+            extra = {"repo": str(repo), "domain_model": str(domain_model)}
+        try:
+            res = await func(*args, **kwargs)
+            if not res or res is None:
+                logger.info("Entity wasn't found", extra=extra)
+                raise NotFoundError()
+            return res
+        except RepositoryResolutionError as e:
+            logger.error("Repository Resolution error while creating: ", extra=extra, exc_info=True)
+            raise ServerError(detail="failed to perform operation due to server error")
+
+        except RelatedEntityDoesNotExist as e:
+            logger.error("Related entity does not exist", exc_info=True, extra=extra)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Error in the provided data (cannot find related entity/entities)"
+            )
+
+    return wrapper
+
+
 class EntityBaseService:
     # calls to the repository defined by the service in application/services
+
+    model_name = None
 
     def __init__(self, **repos):
         for repo_name, instance in repos.items():
@@ -119,24 +153,27 @@ class EntityBaseService:
             session: AsyncSession,
             domain_model: DomainModelDataT
     ) -> CreateReturnDataT:
-
+        extra = {"repo": repo, "domain_model": domain_model}
         try:
             return await self.repository_resolver(repo).create(
                 domain_model=domain_model,
                 session=session
             )
+
         except RepositoryResolutionError:
-            extra = {"repo": repo}
             logger.error("Repository Resolution error while creating: ", extra=extra, exc_info=True)
             raise ServerError(detail="Unable to create instance due to server error")
 
-        except ServerError:
-            raise ServerError(detail="Unable to create instance due to server error")
+        except DBError as e:
+            logger.error("Failed to perform operation", exc_info=True, extra=extra)
+            raise ServerError(detail="Unable to perform operation due to server error")
 
-        except DuplicateError:
-            raise
+        except DuplicateError as e:
+            logger.debug("Already exists", exc_info=True, extra=extra)
+            raise AlreadyExistsError(self.model_name)
 
-        except RelatedEntityDoesNotExist:
+        except RelatedEntityDoesNotExist as e:
+            logger.error("Related entity does not exist", exc_info=True, extra=extra)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error in the provided data (cannot find related entity/entities)"
@@ -160,7 +197,8 @@ class EntityBaseService:
             logger.error("Repository Resolution error while updating: ", extra=extra, exc_info=True)
             raise ServerError(detail="Unable to update instance due to server error")
 
-        except ServerError:
+        except DBError as e:
+            logger.error("Database update error", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to update instance due to server error"
@@ -172,50 +210,35 @@ class EntityBaseService:
                 detail="Error in the provided data (cannot find related entity/entities)"
             )
 
+    @perform_logging
     async def get_all(
             self,
             repo: OrmEntityRepoInterface,
             session: AsyncSession,
             **filters
     ) -> list[ReturnDataT] | ReturnDataT:
-        try:
-            res = await self.repository_resolver(repo).get_all(**filters, session=session)
-            if not res:
-                raise NotFoundError()
-        except RepositoryResolutionError:
-            extra = {"repo", repo}
-            logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
-            raise ServerError(detail="Unable to retrieve instance/instances due to server error")
-
-        except ServerError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Unable to get instance due to server error"
-            )
-        except FilterAttributeError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
+        res = await self.repository_resolver(repo).get_all(**filters, session=session)
         return res
 
+    @perform_logging
     async def get_by_id(
             self,
             session: AsyncSession,
             repo: OrmEntityRepoInterface,
             id: int | str,
-    ) -> ReturnDataT | None:
+    ) -> ReturnDataT | list[ReturnDataT] | None:
         res = []
-        try:
-            res: list = (await self.repository_resolver(repo).get_all(id=id, session=session))
-            if not res or res is None:
-                raise NotFoundError()
-        except (RepositoryResolutionError) as e:
-            extra = {"repo", repo}
-            if isinstance(e, RepositoryResolutionError):
-                logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
-                raise ServerError(detail="Unable to retrieve instance/instances due to server error")
-        return res[0]
+        # try:
+        res: list = (await self.repository_resolver(repo).get_all(id=id, session=session))
+        return res
+        # if not res or res is None:
+        #     raise NotFoundError()
+        # except (RepositoryResolutionError) as e:
+        #     extra = {"repo", repo}
+        #     if isinstance(e, RepositoryResolutionError):
+        #         logger.error("Repository Resolution error while retrieving data: ", extra=extra, exc_info=True)
+        #         raise ServerError(detail="Unable to retrieve instance/instances due to server error")
+        # return res[0]
 
     async def delete(
             self,

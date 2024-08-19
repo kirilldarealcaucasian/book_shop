@@ -10,15 +10,19 @@ from application.schemas import (ReturnBookS,
                                  )
 from core.utils.cache import cachify
 from datetime import timedelta
-from application.schemas import BookFilterS
+from application.services.utils.filters import BookFilter
 
 
 router = APIRouter(prefix="/v1/books", tags=["Books CRUD"])
 
 
-@router.get("", status_code=status.HTTP_200_OK, response_model=list[ReturnBookS] | None)
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    response_model=list[ReturnBookS] | None
+)
 async def get_all_books(
-        filters: BookFilterS = Depends(),
+        filters: BookFilter = Depends(),
         service: BookService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):

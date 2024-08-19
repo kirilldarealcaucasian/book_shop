@@ -103,7 +103,6 @@ from application.schemas.shopping_session_schemas import (
 )
 
 from application.schemas.cart_schemas import (
-    CreateCartS,
     ReturnCartS,
     AddBookToCartS
 )

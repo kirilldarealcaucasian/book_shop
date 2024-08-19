@@ -73,7 +73,6 @@ class CartRepository(OrmEntityRepository):
         try:
             cart = (await session.scalars(stmt)).all()
         except SQLAlchemyError as e:
-            logger.error("query error: failed to perform select query", exc_info=True)
             raise DBError(str(e))
 
         if not cart:

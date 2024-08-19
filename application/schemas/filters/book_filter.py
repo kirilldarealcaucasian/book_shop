@@ -6,7 +6,6 @@ __all__ = (
 )
 
 
-
 class BookFilterS(BaseModel):
     order_by: str | None = None
     filterby: str | None = None
@@ -17,6 +16,3 @@ class BookFilterS(BaseModel):
 class PaginationS(BaseModel):
     page: int = Field(ge=0, default=0)
     limit: int = Field(ge=1, default=5)
-
-
-

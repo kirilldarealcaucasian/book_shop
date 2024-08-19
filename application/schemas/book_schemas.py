@@ -6,8 +6,6 @@ from pydantic import BaseModel, Field
 
 class ReturnBookS(BookBaseS):
     id: UUID
-    price_per_unit: float
-    number_in_stock: int
     isbn: str
     genre_names: list[str]
     rating: float | None
