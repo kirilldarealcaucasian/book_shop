@@ -1,4 +1,3 @@
-from collections import defaultdict
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,13 +11,12 @@ from application.schemas import (
     ReturnBookS,
     UpdateBookS,
     UpdatePartiallyBookS,
-    BookFilterS,
 )
 
 from application.repositories import BookRepository, ImageRepository
 from application.services.storage import StorageServiceInterface
 from application.services.storage.internal_storage import InternalStorageService
-from typing import Annotated, Literal
+from typing import Annotated
 from application.schemas.domain_model_schemas import BookS
 from pydantic import ValidationError, PydanticSchemaGenerationError
 from application.services.utils.filters import BookFilter
@@ -29,7 +27,7 @@ class BookService(EntityBaseService):
     def __init__(
             self,
             storage: Annotated[StorageServiceInterface, Depends(InternalStorageService)],
-            # you can inject 1 of 2 storage implementations
+            # you can inject 1 of 2 storage implementations (look application/services/storage)
             book_repo: Annotated[CombinedBookRepoInterface, Depends(BookRepository)],
             image_repo: Annotated[
                 OrmEntityRepoInterface, Depends(ImageRepository)
@@ -45,24 +43,27 @@ class BookService(EntityBaseService):
             session: AsyncSession,
             id: str
     ) -> ReturnBookS:
-        book: list[Book] = await self.book_repo.get_all(
+        book: Book = await super().get_by_id(
             session=session,
+            repo=self.book_repo,
             id=id
-            )
-        if not book:
-            raise EntityDoesNotExist(entity="Book")
-        print("BOOK: ", book)
-        single_book = book[0]
+        )
+
+        genre_names = [category.name for category in book.categories]
+        authors = [", ".join(
+            [author.first_name, author.last_name]) for author in book.authors]
+
         return ReturnBookS(
-            id=single_book.id,
-            name=single_book.name,
-            description=single_book.description,
-            price_per_unit=single_book.price_per_unit,
-            number_in_stock=single_book.number_in_stock,
-            isbn=single_book.isbn,
-            genre_names=single_book.categories,
-            rating=single_book.rating,
-            discount=single_book.discount
+            id=book.id,
+            name=book.name,
+            description=book.description,
+            price_per_unit=book.price_per_unit,
+            number_in_stock=book.number_in_stock,
+            isbn=book.isbn,
+            genre_names=genre_names,
+            authors=authors,
+            rating=book.rating,
+            discount=book.discount
         )
 
     async def get_all_books(
@@ -70,35 +71,30 @@ class BookService(EntityBaseService):
             session: AsyncSession,
             filters: BookFilter
     ) -> list[ReturnBookS]:
-        # key_value_filters = {}
-        # if filters.filterby:
-        #     key_value_filters: dict = {
-        #         subrow.split("=")[0]: subrow.split("=")[1]
-        #         for subrow in (row for row in filters.filterby.split(","))
-        #     }  # example: title="book1",genre="genre2" -> {"title": "book1", "genre": "genre2}"
-
-        # order_by_filters: dict[Literal["asc", "desc"], list[str]] = (
-        #     defaultdict(list)
-        # )
-        # if filters.order_by:
-        #     for order_filter in filters.order_by.split(","):
-        #         if "-" == order_filter[0]:
-        #             order_by_filters["desc"].append(order_filter[1:])
-        #         else:
-        #             order_by_filters["asc"].append(order_filter)
-        #
-        # return await super().get_all(
-        #     repo=self.book_repo,
-        #     session=session,
-        #     key_value_filters=key_value_filters,
-        #     order_by_filters=order_by_filters,
-        #     page=filters.page,
-        #     limit=filters.limit,
-        # )
-           return await self.book_repo.get_all_books(
-               session=session,
-               filters=filters
+        books: list[Book] = await self.book_repo.get_all_books(
+            session=session,
+            filters=filters
            )
+        res: list[ReturnBookS] = []
+
+        for book in books:
+            genre_names = [category.name for category in book.categories]
+            authors = [", ".join(
+                [author.first_name, author.last_name]) for author in book.authors]
+
+            res.append(ReturnBookS(
+                id=book.id,
+                isbn=book.isbn,
+                name=book.name,
+                genre_names=genre_names,
+                authors=authors,
+                description=book.description,
+                price_per_unit=book.price_per_unit,
+                number_in_stock=book.number_in_stock,
+                rating=book.rating,
+                discount=book.discount
+            ))
+        return res
 
     async def create_book(
             self, session: AsyncSession, dto: CreateBookS

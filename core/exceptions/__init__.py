@@ -8,10 +8,11 @@ __all__ = (
     "ServerError",
     "UnauthorizedError",
     "RepositoryResolutionError",
-    "FilterAttributeError",
+    "FilterError",
     "RelatedEntityDoesNotExist",
     "DomainModelConversionError",
-    "DeletionError"
+    "DeletionError",
+    "OrderingFilterError"
 )
 
 from core.exceptions.storage_exceptions import DuplicateError, DBError, NotFoundError, DeletionError
@@ -19,6 +20,7 @@ from core.exceptions.http_exceptions import (
     AlreadyExistsError, InvalidModelCredentials,
     EntityDoesNotExist, ServerError,
     UnauthorizedError, RepositoryResolutionError,
-    FilterAttributeError, RelatedEntityDoesNotExist,
-    DomainModelConversionError
+    RelatedEntityDoesNotExist, FilterError,
+    DomainModelConversionError,
+    OrderingFilterError
 )

@@ -19,5 +19,7 @@ class BookFilter(BaseFilter):
     number_in_stock__gte: int | None = None
     number_in_stock__lte: int | None = None
 
+    order_by: str | None = None
+
     class Meta(BaseFilter.Meta):
         Model = Book

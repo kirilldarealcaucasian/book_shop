@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4, ConfigDict
 
 
-class BookS(BaseModel):
-    id: str | None
+class BookS(BaseModel, validate_assignment=True):
+    id: UUID4 | None
     isbn: str | None
     name: str | None
     description: str | None
@@ -12,3 +12,9 @@ class BookS(BaseModel):
     category_id: int | None
     rating: float | None
     discount: int | None
+
+    class Config:
+        orm_mode = True
+        model_config = ConfigDict(
+            from_attributes=True,
+        )

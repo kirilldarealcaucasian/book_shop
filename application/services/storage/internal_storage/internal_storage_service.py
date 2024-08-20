@@ -2,6 +2,7 @@ import os
 from fastapi import UploadFile, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core import EntityBaseService
 from core.exceptions import EntityDoesNotExist
 from application.repositories import BookRepository
 from application.services.storage.internal_storage.image_manager import (
@@ -15,7 +16,7 @@ from celery.exceptions import TaskError
 from application.tasks import delete_all_images
 
 
-class InternalStorageService:
+class InternalStorageService(EntityBaseService):
     # implements functionality for managing storage of images in the application/static/images folder
 
     def __init__(
@@ -24,6 +25,7 @@ class InternalStorageService:
             image_manager: ImageManager = Depends(),
     ):
         self.book_repo = book_repo
+        super().__init__(book_repo=book_repo)
         self.__image_manager = image_manager
 
     async def upload_image(
@@ -87,24 +89,21 @@ class InternalStorageService:
             session: AsyncSession,
             delete_images: bool = False,
     ) -> None:
+        logger.debug("in delete_instance_with_images")
         if delete_images:
-            if not await self.book_repo.delete(
-                    session=session, instance_id=instance_id
-            ):  # if no exceptions was raised
-                delete_all_images.delay(instance_id)
+            _ = super().delete(
+                    session=session,
+                    repo=self.book_repo,
+                    instance_id=instance_id
+            )  # if no exceptions was raised
+            delete_all_images.delay(instance_id)
         else:
             try:
-                print("IN DELETE INSTANCE WITH IMAGES")
-                return await self.book_repo.delete(
-                    session=session, instance_id=instance_id
+                return await super().delete(
+                    repo=self.book_repo,
+                    session=session,
+                    instance_id=instance_id
                 )
             except EntityDoesNotExist:
                 raise EntityDoesNotExist(entity="Book")
 
-        # try:
-        #     # await self.image_repo.get_all(session=session, book_id=book_id)
-        #     await self.image_service.get_all(session=session, book_id=book_id)
-        # except EntityDoesNotExist: # if there are no images for the given book
-        #     # await self.book_repo.delete(session=session, instance_id=book_id)
-        #     await self.image_service.book_service.delete(session=session, book_id=book_id)
-        #     return

@@ -88,6 +88,7 @@ class CartService(EntityBaseService):
         self,
         session: AsyncSession,
     ) -> ShoppingSessionIdS:
+        # TODO
         session_id: uuid.UUID = uuid.uuid4()
         domain_model = CartItemS(session_id=session_id)
         session_id: UUID = await super().create(repo=self.cart_repo, session=session, domain_model=domain_model)
@@ -98,6 +99,7 @@ class CartService(EntityBaseService):
         session: AsyncSession,
         cart_session_id: UUID,
     ) -> None:
+        # TODO
         cart = await self.get_cart_by_session_id(
             session=session,
             cart_session_id=cart_session_id
@@ -113,6 +115,7 @@ class CartService(EntityBaseService):
             session_id: UUID,
             dto: AddBookToCartS,
     ):
+        # TODO
         pass
         # session_id: str = str(session_id)
         # cart: CartItem = (await self.get_cart_by_session_id(
@@ -129,5 +132,6 @@ class CartService(EntityBaseService):
             cart_session_id: UUID
 
     ):
+        # TODO
     # ) -> ReturnCartS:
         pass

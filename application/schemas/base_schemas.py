@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -10,6 +12,7 @@ class Config(BaseModel):
 
 
 class BookBaseS(Config):
+    id: UUID
     name: str = Field(min_length=2)
     description: str | None
     price_per_unit: float = Field(ge=1.0)

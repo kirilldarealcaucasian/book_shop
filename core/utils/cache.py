@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 from functools import wraps
 from pydantic import TypeAdapter
-from typing_extensions import Callable
+from typing import Callable
 
 
 __all__ = (

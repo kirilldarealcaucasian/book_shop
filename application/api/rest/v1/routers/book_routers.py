@@ -31,7 +31,7 @@ async def get_all_books(
 
 @router.get("/{book_id}",
             status_code=status.HTTP_200_OK,
-            response_model=list[ReturnBookS],
+            response_model=ReturnBookS,
             )
 @cachify(ReturnBookS, cache_time=timedelta(seconds=10))
 async def get_book_by_id(

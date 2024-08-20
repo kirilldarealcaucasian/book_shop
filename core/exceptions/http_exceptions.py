@@ -9,7 +9,8 @@ __all__ = (
     "UnauthorizedError",
     "RepositoryResolutionError",
     "InvalidModelCredentials",
-    "FilterAttributeError"
+    "FilterError",
+    "OrderingFilterError"
 )
 
 
@@ -42,7 +43,7 @@ class InvalidModelCredentials(HTTPException):
 
 
 class EntityDoesNotExist(HTTPException):
-    def __init__(self, entity):
+    def __init__(self, entity="Entity"):
         super().__init__(
             detail=f"{entity} does not exist",
             status_code=status.HTTP_404_NOT_FOUND,
@@ -70,9 +71,20 @@ class RepositoryResolutionError(ValueError):
         super().__init__("Unable to find desired repo in the repo_collector")
 
 
-class FilterAttributeError(AttributeError):
+class FilterError(HTTPException):
     def __init__(self):
-        super().__init__("Invalid filter name / value")
+        super().__init__(
+            detail="incorrect filter format / data",
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class OrderingFilterError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            detail="incorrect format for order_by filter",
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class DomainModelConversionError(HTTPException):

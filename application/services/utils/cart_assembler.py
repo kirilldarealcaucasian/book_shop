@@ -4,7 +4,7 @@ from application.schemas.order_schemas import AssocBookS
 
 
 def cart_assembler(cart_items: list[CartItem]) -> ReturnCartS:
-    """Walks through cart_items, retrieves books abd outs them in ReturnCartS"""
+    """Walks through cart_items, retrieves books and adds them to ReturnCartS"""
 
     books: list[AssocBookS] = []
     for cart_item in cart_items:  # creates AssocBookS and adds it to books list

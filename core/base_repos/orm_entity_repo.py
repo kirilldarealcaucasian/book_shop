@@ -1,6 +1,6 @@
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from logger import logger
 from core.exceptions.storage_exceptions import (
     DuplicateError,
@@ -122,18 +122,20 @@ class OrmEntityRepository:
                 traceback=str(e)
             )
 
-    async def delete(self,
-                     session: AsyncSession,
-                     instance_id: int | str,
-                     ) -> None:
-        async with session.begin():
-            instance = await self.get_all(session=session, id=instance_id)
-            if not instance:
-                raise NotFoundError
-            await session.delete(instance)
+    async def delete(
+            self,
+            session: AsyncSession,
+            instance_id: int | str,
+    ) -> None:
+        instance = await self.get_all(session=session, id=instance_id)
+
+        if not instance:
+            raise NotFoundError
+
+        instance = instance[0]
+        await session.delete(instance)
         try:
-            await session.delete(instance)
-            await session.commit()
+            await self.commit(session=session)
         except NoSuchTableError as e:
             raise DBError(
                 message=f"Table {self.model} does not exist",
@@ -143,7 +145,7 @@ class OrmEntityRepository:
     async def commit(self, session: AsyncSession):
         try:
             await session.commit()
-        except Exception:
+        except SQLAlchemyError:
             logger.error("Error while commiting session", exc_info=True)
 
 

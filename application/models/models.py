@@ -83,6 +83,7 @@ class Category(Base, TimestampMixin):
     # relationships
     books: Mapped[list["Book"]] = relationship(
         secondary="book_category_assoc",
+        back_populates="categories"
     )  # gets books of this category
 
     def __repr__(self):
@@ -117,6 +118,7 @@ class Book(Base, TimestampMixin):
     #  relationships
     categories: Mapped[list["Category"]] = relationship(
         secondary="book_category_assoc",
+        back_populates="books"
     )  # gets categories of this book
 
     def __repr__(self):
@@ -319,8 +321,14 @@ class ShoppingSession(Base, TimestampMixin):
 class CartItem(Base, TimestampMixin):
     __tablename__ = "cart_items"
 
-    session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id", ondelete="CASCADE"), primary_key=True)
-    book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), primary_key=True, )
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id",
+                                                        ondelete="RESTRICT",
+                                                        passive_deletes=False,
+                                                        ), primary_key=True)
+    book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id",
+                                                     ondelete="RESTRICT",
+                                                     passive_deletes=False, # sends request to db instead of "blanking"
+                                                     ), primary_key=True)
     quantity: Mapped[int]
 
     __mapper_args__ = {'primary_key': [session_id, book_id]}  # composite primary key

@@ -1,10 +1,15 @@
+from collections import defaultdict
 from typing import Any
+
+import sqlalchemy
 from pydantic import BaseModel, UUID4
-from sqlalchemy import select, Select
-from sqlalchemy.orm import joinedload
+from sqlalchemy import select, Select, desc
+from sqlalchemy.exc import CompileError
 
 from application import Book
 from application.models import Category
+from core.exceptions import OrderingFilterError
+from logger import logger
 
 
 class BaseFilter(BaseModel):
@@ -13,7 +18,6 @@ class BaseFilter(BaseModel):
             exclude_none=True,
             exclude_unset=True,
         )
-        print("FILTERING_FIELDS: ", filtering_fields)
         return filtering_fields.items()
 
     def filter(self, stmt: Select):
@@ -34,6 +38,23 @@ class BaseFilter(BaseModel):
                 # to use it in the query
                 model_field = getattr(self.Meta.Model, field_name)
                 stmt = stmt.filter(getattr(model_field, orm_operator)(filter_value))
+        return stmt
+
+    def sort(self, stmt: Select):
+        fields: list = self.order_by.split(",")
+        directions: dict[str, list[str]] = defaultdict(list)
+        for field in fields:
+            if "-" in field:
+                directions["desc"].append(field.lstrip("-"))
+            else:
+                directions["asc"].append(field)
+        try:
+            stmt = stmt.order_by(
+                        *[desc(value) for value in directions["desc"]],  # apply order_by for "descending" fields
+                        *[value for value in directions["asc"]])
+        except sqlalchemy.exc.CompileError as e:
+            logger.debug("incorrect order_by filter format", exc_info=True)
+            raise OrderingFilterError
         return stmt
 
     class Meta:
@@ -71,7 +92,12 @@ class BookFilter(BaseFilter):
     number_in_stock__gte: int | None = None
     number_in_stock__lte: int | None = None
 
+    order_by: str | None = None
+
     class Meta(BaseFilter.Meta):
         Model = Book
 
 
+# f = BookFilter(order_by="price_per_unit,+++name")
+# stmt = select(Book)
+# stmt = f.sort(stmt)
