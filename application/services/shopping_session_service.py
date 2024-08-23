@@ -1,9 +1,13 @@
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.models import ShoppingSession
 from application.repositories import ShoppingSessionRepository
+from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
 from application.schemas import ReturnShoppingSessionS, CreateShoppingSessionS, ShoppingSessionIdS, \
     UpdatePartiallyShoppingSessionS
 from core import EntityBaseService
@@ -16,27 +20,35 @@ from core.exceptions import DomainModelConversionError
 from logger import logger
 
 
-class ShoppingSession(EntityBaseService):
+class ShoppingSessionService(EntityBaseService):
     def __init__(
             self,
             shopping_session_repo: Annotated[
-                OrmEntityRepoInterface, ShoppingSessionRepository]
+                CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)]
     ):
         super().__init__(shopping_session_repo=shopping_session_repo)
         self.shopping_session_repo = shopping_session_repo
 
-    def get_shopping_session_by_id(
+    async def get_shopping_session_by_id(
             self,
             session: AsyncSession,
-            id: str
+            id: UUID
     ) -> ReturnShoppingSessionS:
-        return await super().get_by_id(
+        shopping_session: ShoppingSession = await super().get_by_id(
             session=session,
             repo=self.shopping_session_repo,
             id=id
         )
+        logger.debug("ShoppingSession: ", extra={"shopping_session: ": shopping_session})
 
-    def create_shopping_session(
+        return ReturnShoppingSessionS(
+            id=shopping_session.id,
+            user_id=shopping_session.user_id,
+            total=shopping_session.total,
+            expiration_time=shopping_session.expiration_time
+        )
+
+    async def create_shopping_session(
             self,
             session: AsyncSession,
             dto: CreateShoppingSessionS
@@ -57,7 +69,7 @@ class ShoppingSession(EntityBaseService):
             domain_model=domain_model
         )
 
-    def update_shopping_session(
+    async def update_shopping_session(
             self,
             session: AsyncSession,
             id: str | int,

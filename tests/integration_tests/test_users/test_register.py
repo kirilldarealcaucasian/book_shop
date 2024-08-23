@@ -32,5 +32,5 @@ async def test_register_user(
         "gender": gender,
         "status_code": status_code
     }
-    response = await ac.post(url="auth/register", json=data)
+    response = await ac.post(url="v1/auth/register", json=data)
     assert response.status_code == status_code

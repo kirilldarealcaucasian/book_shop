@@ -5,7 +5,7 @@ from application.schemas import ReturnUserS
 from auth.schemas.token_schema import TokenPayload
 from auth import helpers
 from sqlalchemy.exc import DBAPIError, NoSuchTableError
-from core.exceptions import ServerError, DuplicateError, UnauthorizedError
+from core.exceptions import ServerError, DuplicateError, UnauthorizedError, NotFoundError, DBError
 from logger import logger
 from typing import TypeVar
 
@@ -31,21 +31,26 @@ class AuthRepository:
         user = res.scalar_one_or_none()
 
         if user and not is_login:
-            raise DuplicateError(self.model.__name__)
+            # if there is user when we register
+            raise DuplicateError(entity=self.model.__name__)
 
         if not user and is_login:
-            raise UnauthorizedError(detail="Incorrect email")
+            # if there is no user when we log in
+            raise NotFoundError(entity=self.model.__name__)
 
         return user
 
-    async def create_user(self,
-                          data: dict,
-                          session: AsyncSession
-                          ) -> ReturnUserS:
+    async def create_user(
+            self,
+            data: dict,
+            session: AsyncSession
+    ) -> ReturnUserS:
         user_exists: User | None = await self.retrieve_user_by_email(
             session=session,
-            email=data["email"]
+            email=data["email"],
+            is_login=False
         )
+
         if not user_exists:
             user = User(**data)
             user.email.lower()
@@ -56,11 +61,12 @@ class AuthRepository:
                 session.add(user)
                 await session.commit()
             except (TypeError, DBAPIError) as e:
-                raise ServerError(detail=str(e))
-            except NoSuchTableError:
+                logger.error("failed to add user: ", e)
+                raise DBError(traceback=str(e))
+            except NoSuchTableError as e:
                 extra = {"data": data}
                 logger.error("Database error: User table does not exist", extra=extra, exc_info=True)
-                raise ServerError("Unable to add data")
+                raise DBError("No users table")
 
             stmt = select(User).filter_by(email=data["email"])
 

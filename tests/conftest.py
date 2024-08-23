@@ -70,8 +70,6 @@ async def prepare_database():
 @pytest.mark.asyncio
 @pytest.fixture(scope="function")
 async def ac():
-    # async with AsyncClient(app=app, base_url="http://test") as ac:
-    #     yield ac
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
@@ -81,6 +79,3 @@ def event_loop() -> Generator:
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
-    # loop = asyncio.get_event_loop()
-    # yield loop
-    # loop.close()

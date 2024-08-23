@@ -100,3 +100,6 @@ class UserRepository(OrmEntityRepository):
             )
         user = await self.get_all(session=session, id=order.user_id)
         return user[0]
+
+    async def get_by_id(self, session: AsyncSession, id: int):
+        return await super().get_all(session=session, id=id)

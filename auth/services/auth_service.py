@@ -1,13 +1,14 @@
-from datetime import timedelta
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth.repositories.auth_repository import AuthRepository
 from application.schemas import LoginUserS, RegisterUserS, ReturnUserS, AuthenticatedUserS
 from auth import helpers
-from auth.helpers import decode_jwt
-from auth.schemas.token_schema import TokenPayload, AccessToken
+from auth.helpers import  validate_token, get_token_payload
+from auth.schemas.token_schema import TokenPayload, AuthResponse, Token
 from application.models import User
+from core.exceptions import DuplicateError, AlreadyExistsError, UnauthorizedError, NotFoundError
+
 
 class AuthService:
 
@@ -21,55 +22,69 @@ class AuthService:
         del payload_copy["password"]
 
         payload_copy["hashed_password"] = hashed_password
-        user: ReturnUserS = await self.repository.create_user(
-            session=session,
-            data=payload_copy
-        )
-        return user
 
-    async def authorize_user(self, session: AsyncSession, user_creds: LoginUserS) -> AccessToken:
-        user: dict[str: TokenPayload, str: str] = \
-            await self.repository.login_user(
+        try:
+            user: ReturnUserS = await self.repository.create_user(
                 session=session,
-                email=user_creds.email,
-                password=user_creds.password
+                data=payload_copy
             )
-        if helpers.validate_password(user_creds.password, user["hashed_password"]):
-            return helpers.create_token(user["payload"], expire_timedelta=timedelta(minutes=100))
+            return user
+        except DuplicateError as e:
+            if type(e) == DuplicateError:
+                raise AlreadyExistsError(entity="User")
 
-    @classmethod
-    def get_token_payload(cls, credentials: HTTPAuthorizationCredentials) -> dict:
-        token: str = credentials.credentials
-        if not token:
-            raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED,
-                detail="No token in the header. You are not authorized"
+    async def authorize_user(
+            self,
+            session: AsyncSession,
+            user_creds: LoginUserS
+    ) -> AuthResponse:
+        email = user_creds.email
+
+        try:
+            user = await self.repository.retrieve_user_by_email(
+                session=session,
+                email=email,
+                is_login=True
             )
-        payload: dict = decode_jwt(token)
-        return payload
+        except NotFoundError as e:
+            raise UnauthorizedError("Invalid login / password")
 
-    @staticmethod
-    def validate_token(payload: dict):
-        email: str = payload["sub"]
-        expiration: int = payload["exp"]
-        if not email or not expiration or "role_name" not in payload:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
+        if not helpers.validate_password(
+                password=user_creds.password,
+                hashed_password=user.hashed_password
+        ):
+            raise UnauthorizedError(
+                detail="Invalid login / password"
             )
-        return email
 
-    async def get_auth_user(self,
-                            session: AsyncSession,
-                            credentials: HTTPAuthorizationCredentials
-                            ) -> AuthenticatedUserS:
-        payload: dict = self.get_token_payload(credentials=credentials)
-        email: str = self.validate_token(payload)
+        token_payload = TokenPayload(user_id=user.id, email=user.email, role=user.role_name)
+
+        access_token = helpers.issue_token(
+            data=token_payload,
+            is_refresh=False
+        )
+        refresh_token = helpers.issue_token(
+            data=token_payload,
+            is_refresh=True
+        )
+
+        return AuthResponse(
+            access_token=access_token.token,
+            refresh_token=refresh_token.token
+        )
+
+    async def get_auth_user(
+            self,
+            session: AsyncSession,
+            credentials: HTTPAuthorizationCredentials
+    ) -> AuthenticatedUserS:
+        payload: dict = get_token_payload(credentials=credentials)
+        email: str = validate_token(payload)
 
         user: User = await self.repository.retrieve_user_by_email(
             session=session,
             email=email, is_login=True
-            )
+        )
 
         return AuthenticatedUserS(
             id=user.id,

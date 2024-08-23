@@ -1,5 +1,5 @@
 class DuplicateError(BaseException):
-    def __init__(self, entity, traceback: str | None):
+    def __init__(self, entity, traceback: str | None = None):
         self.entity = entity
         self.traceback = traceback
 
@@ -8,18 +8,20 @@ class DuplicateError(BaseException):
 
 
 class DBError(BaseException):
-    def __init__(self, message: str, traceback: str = ""):
-        self.message = message
+    def __init__(self, traceback: str = ""):
         self.traceback = traceback
 
     def __str__(self):
-        return f"{self.message}: {self.traceback}"
+        return f"Traceback: {self.traceback}"
 
 
 class NotFoundError(BaseException):
 
+    def __init__(self, entity="Entity"):
+        self.entity = entity
+
     def __str__(self):
-        return "Entity wasn't found"
+        return f"{self.entity} wasn't found"
 
 
 class DeletionError(BaseException):

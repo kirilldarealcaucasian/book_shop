@@ -1,13 +1,17 @@
 from pydantic import UUID4
 from sqlalchemy import select
+from sqlalchemy.exc import CompileError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from typing import Union
 
-from application.services.utils.books_filter import BookFilter
+from application.services.utils.filters import BookFilter
+
+from application.services.utils.filters import Pagination
 from core import OrmEntityRepository
 from core.base_repos import OrmEntityRepoInterface
 from application.models import Book
+from core.exceptions import FilterError
 from logger import logger
 
 
@@ -16,8 +20,7 @@ class BookRepoInterface(OrmEntityRepository):
             self,
             session: AsyncSession,
             filters: BookFilter,
-            page: int = 0,
-            limit: int = 10,
+            pagination: Pagination
     ) -> list[Book]:
         ...
 
@@ -39,32 +42,35 @@ class BookRepository(OrmEntityRepository):
             self,
             session: AsyncSession,
             filters: BookFilter,
-            page: int = 0,
-            limit: int = 10,
+            pagination: Pagination
     ) -> list[Book]:
         stmt = select(self.model).options(
             selectinload(Book.categories),
             selectinload(Book.authors)
         )
 
-        if limit > 1000:
-            session = session.bind.execution_options(yield_per=100)
-
+        if pagination.limit > 1000:
             stmt = select(self.model).options(
                 selectinload(Book.categories),
                 selectinload(Book.authors)
             )
-            stmt = filters.filter(stmt)
-            stmt = filters.sort(stmt).offset(page * limit).limit(limit)
 
-            result = await session.execute(stmt)
+            stmt = filters.filter(stmt)
+            stmt = filters.sort(stmt).offset(
+                    pagination.page * pagination.limit
+                ).limit(pagination.limit)
+
+            try:
+                result = await session.execute(stmt)
+            except CompileError:
+                raise FilterError()
 
             books: list[Book] = []
 
             for chunk in result.yield_per(2):
                 books.append(chunk[0])
 
-            logger.debug("books: ", books)
+            logger.debug("books: ", extra={"books": books})
             return books
 
         stmt = select(self.model).options(
@@ -73,10 +79,16 @@ class BookRepository(OrmEntityRepository):
         )
 
         stmt = filters.filter(stmt)
-        stmt = filters.sort(stmt).offset(page * limit).limit(limit)
+        stmt = filters.sort(stmt).offset(
+            pagination.page * pagination.limit
+        ).limit(pagination.limit)
 
-        books = list((await session.scalars(stmt)).all())
-        logger.debug("books: ", books)
+        try:
+            books = list((await session.scalars(stmt)).all())
+        except CompileError as e:
+            raise FilterError()
+
+        logger.debug("books: ", extra={"books": books})
         return books
 
     async def get_by_id(

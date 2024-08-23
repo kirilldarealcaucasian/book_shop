@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Id(BaseModel):
-    id: int
+    id: int | str
 
 
 class Config(BaseModel):
@@ -12,7 +12,6 @@ class Config(BaseModel):
 
 
 class BookBaseS(Config):
-    id: UUID
     name: str = Field(min_length=2)
     description: str | None
     price_per_unit: float = Field(ge=1.0)

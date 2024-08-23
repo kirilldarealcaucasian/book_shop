@@ -15,9 +15,9 @@ from application.schemas import (
     ReturnUserWithOrdersS,
 )
 from application.schemas.filters import PaginationS
-from core.exceptions import EntityDoesNotExist, DomainModelConversionError, NotFoundError
+from core.exceptions import EntityDoesNotExist, DomainModelConversionError, NotFoundError, ServerError, \
+    InvalidModelCredentials
 from logger import logger
-import tracemalloc
 
 
 class UserService(EntityBaseService):
@@ -27,7 +27,6 @@ class UserService(EntityBaseService):
     ):
         self.user_repo = user_repo
         super().__init__(user_repo=user_repo)
-
 
     async def get_all_users(
         self, session: AsyncSession, pagination: PaginationS
@@ -71,7 +70,9 @@ class UserService(EntityBaseService):
         user_id: str | int,
         dto: UpdateUserS | UpdatePartiallyUserS,
     ) -> None:
-        dto: dict = dto.model_dump(exclude_unset=True)
+        dto: dict = dto.model_dump(exclude_unset=True, exclude_none=True)
+        if not dto:
+            raise InvalidModelCredentials(message="invalid data")
 
         try:
             domain_model = UserS(**dto)
@@ -81,7 +82,7 @@ class UserService(EntityBaseService):
                 extra={"dto": dto},
                 exc_info=True
             )
-            raise DomainModelConversionError
+            raise ServerError()
 
         return await super().update(
             session=session,

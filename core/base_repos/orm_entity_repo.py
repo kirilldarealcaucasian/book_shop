@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -7,7 +9,7 @@ from core.exceptions.storage_exceptions import (
     DBError, NotFoundError
 )
 from sqlalchemy.exc import NoSuchTableError, NoReferenceError
-from typing import TypeVar
+from typing import TypeVar, TypeAlias, Optional, Union
 from application.schemas.domain_model_schemas import \
     (
     AuthorS,
@@ -28,6 +30,8 @@ DomainModelDataT = TypeVar(
     PaymentDetailS, PublisherS, ShoppingSessionS
 )
 
+Id: TypeAlias = Optional[Union[str, int, UUID]]
+
 
 class OrmEntityRepository:
     model = None
@@ -36,13 +40,12 @@ class OrmEntityRepository:
             self,
             session: AsyncSession,
             domain_model: DomainModelDataT,
-    ) -> None:
+    ) -> Id:
         to_add = None
         try:
-            to_add = self.model(domain_model.model_dump(exclude_unset=True))
+            to_add = self.model(**domain_model.model_dump(exclude_unset=True))
         except Exception as e:
             raise DBError(
-                message="Error while creating a domain model",
                 traceback=str(e)
             )
         try:
@@ -50,7 +53,6 @@ class OrmEntityRepository:
             await session.commit()
         except NoSuchTableError as e:
             raise DBError(
-                message=f"Table for {self.model} does not exist",
                 traceback=str(e)
             )
 
@@ -62,9 +64,11 @@ class OrmEntityRepository:
 
         except NoReferenceError as e:
             raise DBError(
-                message="Invalid ForeignKey reference",
                 traceback=str(e)
             )
+        added_entity_id = to_add.id
+        logger.info(f"added {self.model}: {added_entity_id}")
+        return added_entity_id
 
     async def get_all(
             self,
@@ -78,7 +82,6 @@ class OrmEntityRepository:
             domain_models: list | [] = (await session.scalars(stmt)).all()
         except NoSuchTableError as e:
             raise DBError(
-                message=f"Table for {self.model} does not exist",
                 traceback=str(e)
             )
 
@@ -92,16 +95,17 @@ class OrmEntityRepository:
             domain_model: DomainModelDataT,
             instance_id: str | int,
             session: AsyncSession,
-    ) -> None:
+    ) -> model:
 
-        _ = await self.get_all(session=session, id=instance_id)  # check existence of the entity
-        to_update = None
+        res = await self.get_all(session=session, id=instance_id)  # check existence of the entity
+
+        if not res:
+            raise NotFoundError(entity=self.model.__name__)
 
         try:
-            to_update = self.model(domain_model.model_dump(exclude_unset=True))
+            to_update: dict = domain_model.model_dump(exclude_unset=True, exclude_none=True)
         except Exception as e:
             raise DBError(
-                message="Error while creating a domain model",
                 traceback=str(e)
             )
 
@@ -109,18 +113,17 @@ class OrmEntityRepository:
             stmt = update(self.model).where(self.model.id == instance_id).values(**to_update)
             await session.execute(stmt)
             await session.commit()
-
-        except IntegrityError as e:
+        except (IntegrityError, NoReferenceError, TypeError) as e:
             raise DBError(
-                message="Integrity error",
                 traceback=str(e)
             )
-
-        except NoReferenceError as e:
+        session.expire_all()
+        updated_entity: list = await self.get_all(session=session, id=instance_id)
+        if not updated_entity:
             raise DBError(
-                message="Invalid ForeignKey reference",
-                traceback=str(e)
+                traceback="Entity wasn't found after update operation"
             )
+        return updated_entity[0]
 
     async def delete(
             self,
@@ -130,7 +133,7 @@ class OrmEntityRepository:
         instance = await self.get_all(session=session, id=instance_id)
 
         if not instance:
-            raise NotFoundError
+            raise NotFoundError(entity=self.model.__name__)
 
         instance = instance[0]
         await session.delete(instance)
@@ -138,7 +141,6 @@ class OrmEntityRepository:
             await self.commit(session=session)
         except NoSuchTableError as e:
             raise DBError(
-                message=f"Table {self.model} does not exist",
                 traceback=str(e)
             )
 
@@ -147,5 +149,3 @@ class OrmEntityRepository:
             await session.commit()
         except SQLAlchemyError:
             logger.error("Error while commiting session", exc_info=True)
-
-

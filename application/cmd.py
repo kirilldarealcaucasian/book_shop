@@ -35,7 +35,9 @@ async def lifespan(app: FastAPI):
         except ConnectionResetError as e:
             yield None
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,

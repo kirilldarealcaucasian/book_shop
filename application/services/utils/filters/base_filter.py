@@ -6,7 +6,7 @@ from sqlalchemy import Select, desc
 
 __all__ = ("BaseFilter", )
 
-from sqlalchemy.exc import CompileError
+from sqlalchemy.exc import CompileError, StatementError
 
 from core.exceptions import OrderingFilterError, FilterError
 from logger import logger
@@ -31,7 +31,7 @@ class BaseFilter(BaseModel):
                 # case for a nested filter
                 try:
                     stmt = getattr(self, filter_name, None).filter(stmt)
-                except (CompileError) as e:
+                except StatementError as e:
                     logger.debug("filter error", exc_info=True)
                     raise FilterError
 
@@ -47,7 +47,7 @@ class BaseFilter(BaseModel):
 
                     model_field = getattr(self.Meta.Model, field_name)
                     stmt = stmt.filter(getattr(model_field, orm_operator)(filter_value))
-                except CompileError as e:
+                except (CompileError, StatementError) as e:
                     extra = {
                         "field_name": field_name,
                         "query_operator": query_operator,
@@ -73,12 +73,12 @@ class BaseFilter(BaseModel):
                         *[desc(value) for value in directions["desc"]],  # apply order_by for "descending" fields
                         *[value for value in directions["asc"]])
             return stmt
-        except CompileError:
+        except (StatementError) as e:
             logger.debug("incorrect order_by filter format", exc_info=True)
             raise OrderingFilterError
 
     class Meta:
-        # install this attribute from a filter subclass
+        # this attribute should be set from a filter subclass
         Model: Any
 
     class FilterRules:

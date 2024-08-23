@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar, Generic
@@ -28,7 +30,7 @@ from application.schemas import (
     CreateCategoryS, ReturnCategoryS,
     ReturnShoppingSessionS, ShoppingSessionIdS,
     CreateShoppingSessionS,
-    UpdatePartiallyShoppingSessionS
+    UpdatePartiallyShoppingSessionS, BookIdS
 )
 from application.schemas.domain_model_schemas import \
     (
@@ -74,9 +76,9 @@ ReturnDataT = TypeVar(
     ReturnCategoryS, ReturnShoppingSessionS
 )
 
-CreateReturnDataT = TypeVar("CreateReturnDataT", ShoppingSessionIdS, None)
+CreateReturnDataT = TypeVar("CreateReturnDataT", ShoppingSessionIdS, BookIdS, None)
 
-ArgDataT = TypeVar("ArgDataT", str, int)
+ArgDataT = TypeVar("ArgDataT", str, int, UUID)
 
 DomainModelDataT = TypeVar(
     "DomainModelDataT",
@@ -114,9 +116,10 @@ class EntityBaseService(
         ArgDataT,
     ]
 ):
-    # calls to the repository defined by the service in application/services
-
-    model_name = None
+    """
+    Takes out responsibility of handling exceptions in each of the service classes.
+    EntityBaseService calls to the repository defined in each subclass of EntityBaseService
+    """
 
     def __init__(self, **repos):
         for repo_name, instance in repos.items():
@@ -133,13 +136,16 @@ class EntityBaseService(
     ) -> CreateReturnDataT:
         extra = {"repo": repo, "domain_model": domain_model}
         try:
-            return await self.repository_resolver(repo).create(
+            id = await self.repository_resolver(repo).create(
                 domain_model=domain_model,
                 session=session
             )
+            return BookIdS(
+                id=id
+            )
         except DuplicateError as e:
-            logger.debug("Already exists", exc_info=True, extra=extra)
-            raise AlreadyExistsError(self.model_name)
+            logger.debug(f"{e.entity} Already exists", exc_info=True, extra=extra)
+            raise AlreadyExistsError(e.entity)
 
     @perform_logging
     async def update(
@@ -172,7 +178,7 @@ class EntityBaseService(
             self,
             session: AsyncSession,
             repo: RepoInterface,
-            id: int | str,
+            id: int | str | UUID,
     ) -> ReturnDataT:
         return await self.repository_resolver(repo).get_by_id(id=id, session=session)
 

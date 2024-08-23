@@ -16,5 +16,14 @@
     "email": "alisha@gmail.com",
     "hashed_password": "$2b$12$3Ym1ebFcV9IZAuyEgd083u2t0YwXSf74SPTtxiY3npPTzKSwiNMzG",
     "role_name": "user"
+  },
+  {
+    "id": 4,
+    "first_name": "User to delete",
+    "last_name": "User to delete",
+    "gender": "male",
+    "email": "dekete@gmail.com",
+    "hashed_password" : "$2b$12$3Ym1ebFcV9IZAuyEgd083u2t0YwXSf74SPTtxiY3npPTzKSwiNMzG",
+    "role_name": "user"
   }
 ]

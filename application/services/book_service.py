@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +21,7 @@ from application.services.storage.internal_storage import InternalStorageService
 from typing import Annotated
 from application.schemas.domain_model_schemas import BookS
 from pydantic import ValidationError, PydanticSchemaGenerationError
-from application.services.utils.filters import BookFilter
+from application.services.utils.filters import BookFilter, Pagination
 from logger import logger
 
 
@@ -41,12 +43,12 @@ class BookService(EntityBaseService):
     async def get_book_by_id(
             self,
             session: AsyncSession,
-            id: str
+            id: UUID
     ) -> ReturnBookS:
         book: Book = await super().get_by_id(
             session=session,
             repo=self.book_repo,
-            id=id
+            id=str(id)
         )
 
         genre_names = [category.name for category in book.categories]
@@ -69,11 +71,13 @@ class BookService(EntityBaseService):
     async def get_all_books(
             self,
             session: AsyncSession,
-            filters: BookFilter
+            filters: BookFilter,
+            pagination: Pagination
     ) -> list[ReturnBookS]:
         books: list[Book] = await self.book_repo.get_all_books(
             session=session,
-            filters=filters
+            filters=filters,
+            pagination=pagination
            )
         res: list[ReturnBookS] = []
 
@@ -108,7 +112,7 @@ class BookService(EntityBaseService):
                 extra={"dto": dto},
                 exc_info=True
             )
-            raise DomainModelConversionError
+            raise DomainModelConversionError(detail="Failed to generate domain model")
 
         return await super().create(
                 repo=self.book_repo,
@@ -138,8 +142,9 @@ class BookService(EntityBaseService):
             session: AsyncSession,
             book_id: str | int,
             dto: UpdateBookS | UpdatePartiallyBookS,
-    ) -> ReturnBookS:
-        dto: dict = dto.model_dump(exclude_unset=True)
+    ) -> UpdateBookS:
+        dto: dict = dto.model_dump(exclude_unset=True, exclude_none=True)
+
         try:
             domain_model = BookS(**dto)
         except (ValidationError, PydanticSchemaGenerationError) as e:
@@ -150,9 +155,19 @@ class BookService(EntityBaseService):
             )
             raise DomainModelConversionError
 
-        return await super().update(
+        updated_book: Book = await super().update(
                 repo=self.book_repo,
                 session=session,
                 instance_id=book_id,
                 domain_model=domain_model
             )
+
+        return UpdateBookS(
+            isbn=updated_book.isbn,
+            description=updated_book.description,
+            rating=updated_book.rating,
+            discount=updated_book.discount,
+            name=updated_book.name,
+            price_per_unit=updated_book.price_per_unit,
+            number_in_stock=updated_book.number_in_stock
+        )

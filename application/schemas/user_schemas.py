@@ -30,11 +30,11 @@ class UpdateUserS(UserBaseS):
 
 
 class UpdatePartiallyUserS(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
+    first_name: str = Field(default=None, min_length=2)
+    last_name: str = Field(default=None, min_length=2)
     gender: str | None = None
     email: EmailStr | None = None
-    password: str | None = None
+    password: str | None = Field(default=None, min_length=6)
     registration_date: datetime = None
     role_name: str | None = None
     date_of_birth: date = None

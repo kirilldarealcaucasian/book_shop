@@ -7,6 +7,7 @@ from logger import logger
 
 
 def perform_logging(func: Callable):
+    """Applies logging scenarios for generic functions"""
     @wraps(func)
     async def wrapper(*args, **kwargs):
         kwargs = dict(kwargs)
@@ -19,8 +20,6 @@ def perform_logging(func: Callable):
             extra = {"repo": str(repo), "domain_model": str(domain_model)}
         try:
             res = await func(*args, **kwargs)
-            print("FUNC NAME: ", func.__name__)
-            print("RES: ", res)
             if func.__name__ != "delete" and (not res or res is None):
                 logger.info("Entity wasn't found", extra=extra)
                 raise EntityDoesNotExist()
@@ -39,9 +38,9 @@ def perform_logging(func: Callable):
             logger.error(f"Database {func.__name__} error", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Something went wrong while performing operation"
+                detail="Something went wrong"
             )
         except NotFoundError as e:
-            logger.debug("Entity wasn't found", exc_info=True)
-            raise EntityDoesNotExist()
+            logger.debug(f"{e.entity} wasn't found", exc_info=True)
+            raise EntityDoesNotExist(entity=e.entity)
     return wrapper

@@ -16,6 +16,6 @@ async def test_login(ac: AsyncClient, email: str, password: str, status_code: in
         "email": email,
         "password": password
     }
-    response = await ac.post(url="auth/login", json=data)
+    response = await ac.post(url="v1/auth/login", json=data)
 
     assert response.status_code == status_code

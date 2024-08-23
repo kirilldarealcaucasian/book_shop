@@ -1,3 +1,4 @@
+from typing import List
 from uuid import uuid4
 from sqlalchemy import (
     ForeignKey,
@@ -306,7 +307,7 @@ class ShoppingSession(Base, TimestampMixin):
 
     # relationships
     user: Mapped["User"] = relationship(back_populates="shopping_session")
-    cart_item: Mapped["CartItem"] = relationship(back_populates="shopping_session")
+    cart_items: Mapped[List["CartItem"]] = relationship(back_populates="shopping_session")
 
     def __repr__(self):
         return f"""ShoppingSession(
@@ -323,11 +324,9 @@ class CartItem(Base, TimestampMixin):
 
     session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id",
                                                         ondelete="RESTRICT",
-                                                        passive_deletes=False,
                                                         ), primary_key=True)
     book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id",
                                                      ondelete="RESTRICT",
-                                                     passive_deletes=False, # sends request to db instead of "blanking"
                                                      ), primary_key=True)
     quantity: Mapped[int]
 
@@ -335,7 +334,7 @@ class CartItem(Base, TimestampMixin):
 
     # relationships
     book: Mapped["Book"] = relationship(back_populates="cart_items")
-    shopping_session: Mapped["ShoppingSession"] = relationship(back_populates="cart_item")
+    shopping_session: Mapped["ShoppingSession"] = relationship(back_populates="cart_items")
 
     def __repr__(self):
         return f"""CartItem(

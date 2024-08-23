@@ -13,3 +13,7 @@ class AddBookToCartS(BaseModel):
     session_id: UUID | str | int
     quantity: int
 
+
+class CartSessionId(BaseModel):
+    session_id: UUID
+
