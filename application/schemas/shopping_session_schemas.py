@@ -11,7 +11,7 @@ class CreateShoppingSessionS(BaseModel):
 
 class ReturnShoppingSessionS(BaseModel):
     id: UUID
-    user_id: int
+    user_id: int | None
     total: float
     expiration_time: datetime
 
@@ -22,4 +22,4 @@ class UpdatePartiallyShoppingSessionS(BaseModel):
 
 
 class ShoppingSessionIdS(BaseModel):
-    session_id: uuid4
+    session_id: UUID

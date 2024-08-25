@@ -1,23 +1,26 @@
-import uuid
 from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+
 from application.models import CartItem
 from application.repositories import CartRepository, ShoppingSessionRepository
 from application.repositories.book_repo import CombinedBookRepoInterface, BookRepository
 from application.repositories.cart_repo import CombinedCartRepositoryInterface
 from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
-from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS
-from application.services import UserService
+from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS, CreateShoppingSessionS
+from application.services import UserService, ShoppingSessionService
 from application.services.utils import cart_assembler
+from auth.helpers import get_token_payload
 from core import EntityBaseService
-from typing import Annotated
+from typing import Annotated, Union
 from application.schemas.domain_model_schemas import CartItemS
 
 from uuid import UUID
 
-from core.base_repos import OrmEntityRepoInterface
-from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError
+from core.config import settings
+from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError
 from logger import logger
 
 
@@ -32,13 +35,15 @@ class CartService(EntityBaseService):
         shopping_session_repo: Annotated[
                 CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
         ],
+        shopping_session_service: ShoppingSessionService = Depends(),
         user_service: UserService = Depends()
     ):
         self.book_repo = book_repo
         self.shopping_session_repo = shopping_session_repo
-        self.user_service = user_service
         self.cart_repo: CombinedCartRepositoryInterface = cart_repo
         super().__init__(cart_repo=cart_repo)
+        self.shopping_session_service = shopping_session_service
+        self.user_service = user_service
 
     async def get_cart_by_session_id(
         self,
@@ -84,6 +89,7 @@ class CartService(EntityBaseService):
                 raise EntityDoesNotExist("Cart")
             elif type(e) == DBError:
                 raise ServerError()
+
         assembled_cart: ReturnCartS = cart_assembler(cart)
 
         return assembled_cart
@@ -91,15 +97,58 @@ class CartService(EntityBaseService):
     async def create_cart(
         self,
         session: AsyncSession,
-    ) -> ShoppingSessionIdS:
-        session_id: uuid.UUID = uuid.uuid4()
-        domain_model = CartItemS(session_id=session_id)
+        credentials: HTTPAuthorizationCredentials | None
+    ) -> JSONResponse:
+        """Cart is associated with a shopping_session_id.
+        This method creates a shopping_session and stores it to the cookie"""
 
-        session_id: UUID = await super().create(repo=self.cart_repo, session=session, domain_model=domain_model)
+        user_id: Union[int, None] = None
 
-        return ShoppingSessionIdS(
-            session_id=session_id
+        if credentials:
+            token_payload: dict = get_token_payload(
+                credentials=credentials
+            )
+            user_id = token_payload["user_id"]
+            try:
+                cart = await self.get_cart_by_user_id(
+                    session=session,
+                    user_id=user_id
+                )
+                if cart:
+                    raise AlreadyExistsError(
+                        entity="Cart",
+                    )
+            except EntityDoesNotExist:
+                # it is okay if there is no cart for a user
+                pass
+
+        shopping_session_id: ShoppingSessionIdS = await self.shopping_session_service.create_shopping_session(
+            session=session,
+            dto=CreateShoppingSessionS(
+                user_id=user_id,
+                total=0.0
+            )
         )
+
+        shopping_session = await self.shopping_session_service.get_shopping_session_by_id(
+            session=session,
+            id=shopping_session_id.session_id
+        )
+
+        response = JSONResponse(
+            content={"status": "success"},
+            status_code=201
+        )
+
+        response.set_cookie(
+            key=settings.SHOPPING_SESSION_COOKIE_NAME,
+            value=str(shopping_session.id),
+            expires=shopping_session.expiration_time,
+            httponly=True,
+            secure=True
+        )
+
+        return response
 
     async def delete_cart(
         self,

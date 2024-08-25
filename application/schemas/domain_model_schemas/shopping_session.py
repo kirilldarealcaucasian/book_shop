@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 
 class ShoppingSessionS(BaseModel):
-    id: UUID | None
-    user_id: int | None
-    total: float | None
-    expiration_time: datetime | None
-    created_at: datetime | None
-    updated_at: datetime | None
+    id: UUID | None = None
+    user_id: int | None = None
+    total: float | None = None
+    expiration_time: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None

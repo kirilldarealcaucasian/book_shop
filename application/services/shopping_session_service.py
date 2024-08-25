@@ -11,7 +11,6 @@ from application.repositories.shopping_session_repo import CombinedShoppingSessi
 from application.schemas import ReturnShoppingSessionS, CreateShoppingSessionS, ShoppingSessionIdS, \
     UpdatePartiallyShoppingSessionS
 from core import EntityBaseService
-from core.base_repos import OrmEntityRepoInterface
 from application.schemas.domain_model_schemas import ShoppingSessionS
 from pydantic import ValidationError, PydanticSchemaGenerationError
 
@@ -40,7 +39,6 @@ class ShoppingSessionService(EntityBaseService):
             id=id
         )
         logger.debug("ShoppingSession: ", extra={"shopping_session: ": shopping_session})
-
         return ReturnShoppingSessionS(
             id=shopping_session.id,
             user_id=shopping_session.user_id,
@@ -53,20 +51,24 @@ class ShoppingSessionService(EntityBaseService):
             session: AsyncSession,
             dto: CreateShoppingSessionS
     ) -> ShoppingSessionIdS:
-        dto: dict = dto.model_dump(exclude_unset=True)
+        dto: dict = dto.model_dump(exclude_unset=True, exclude_none=True)
 
         try:
             domain_model = ShoppingSessionS(**dto)
-            domain_model.expiration_time = datetime.now() + settings.SHOPPING_SESSION_DURATION
+            domain_model.expiration_time = datetime.now() + settings.SHOPPING_SESSION_EXPIRATION_TIMEDELTA
         except (ValidationError, PydanticSchemaGenerationError) as e:
             extra = {"dto": dto}
             logger.error("failed to convert to domain model", extra, exc_info=True)
             raise DomainModelConversionError
 
-        return await super().create(
+        session_id = await super().create(
             session=session,
             repo=self.shopping_session_repo,
             domain_model=domain_model
+        )
+
+        return ShoppingSessionIdS(
+            session_id=session_id
         )
 
     async def update_shopping_session(

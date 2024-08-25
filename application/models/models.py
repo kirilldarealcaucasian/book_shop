@@ -1,5 +1,4 @@
 from typing import List
-from uuid import uuid4
 from sqlalchemy import (
     ForeignKey,
     UniqueConstraint,
@@ -19,6 +18,8 @@ from sqlalchemy.orm import (
 )
 from datetime import date, datetime, timedelta
 from typing_extensions import Literal
+
+from application.helpers import generate_uuid
 from application.models.mixins import FirstLastNameValidationMixin, TimestampMixin
 
 
@@ -97,7 +98,9 @@ class Category(Base, TimestampMixin):
 class Book(Base, TimestampMixin):
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True,
-        server_default=str(uuid4()), default=uuid4(), unique=True)
+        default=generate_uuid,
+        unique=True
+    )
     isbn: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
     name: Mapped[str]
     description: Mapped[str | None]
@@ -293,15 +296,14 @@ class ShoppingSession(Base, TimestampMixin):
     )
 
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), default=uuid4(),
-        server_default=str(uuid4()), primary_key=True,
+        UUID(as_uuid=True), default=generate_uuid,
+        primary_key=True,
         unique=True
     )
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), unique=True)
     total: Mapped[float | None] = mapped_column(server_default="0", default=0)
     expiration_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=str(datetime.now() + timedelta(days=1)),
         default=datetime.now() + timedelta(days=1)
     )
 
@@ -321,6 +323,12 @@ class ShoppingSession(Base, TimestampMixin):
 
 class CartItem(Base, TimestampMixin):
     __tablename__ = "cart_items"
+
+    __table_args__ = (UniqueConstraint(
+        "session_id",
+        "book_id",
+        name="uq_cart_items_session_id_book_id"),
+    )
 
     session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id",
                                                         ondelete="RESTRICT",

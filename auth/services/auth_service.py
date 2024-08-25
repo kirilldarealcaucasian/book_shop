@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.repositories.auth_repository import AuthRepository
 from application.schemas import LoginUserS, RegisterUserS, ReturnUserS, AuthenticatedUserS
 from auth import helpers
-from auth.helpers import  validate_token, get_token_payload
+from auth.helpers import validate_token, get_token_payload
 from auth.schemas.token_schema import TokenPayload, AuthResponse, Token
 from application.models import User
 from core.exceptions import DuplicateError, AlreadyExistsError, UnauthorizedError, NotFoundError

@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import FutureDatetime
 from dotenv import load_dotenv
-from dateparser import parse
 
 __all__ = (
     "settings",
@@ -40,12 +38,17 @@ class Settings(BaseSettings):
     Rabbit_PORT: int
 
     SHOPPING_SESSION_DURATION: str
+    SHOPPING_SESSION_COOKIE_NAME: str
+
     @property
     def SHOPPING_SESSION_EXPIRATION_TIMEDELTA(self) -> timedelta:
-        parsed_interval = parse(self.SHOPPING_SESSION_DURATION)
-        reference_time = datetime.now()
-        time_delta = parsed_interval - reference_time
-        return timedelta(abs(time_delta.total_seconds()))
+        time_intervals = self.SHOPPING_SESSION_DURATION.split(":")
+        # example: "1:0:0" -> 1 day 0 hours 0 minutes
+        return timedelta(
+            days=int(time_intervals[0]),
+            hours=int(time_intervals[1]),
+            minutes=int(time_intervals[2])
+        )
 
     model_config = SettingsConfigDict(env_file=".env")
 

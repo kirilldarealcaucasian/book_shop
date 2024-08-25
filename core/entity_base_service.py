@@ -140,9 +140,7 @@ class EntityBaseService(
                 domain_model=domain_model,
                 session=session
             )
-            return BookIdS(
-                id=id
-            )
+            return id
         except DuplicateError as e:
             logger.debug(f"{e.entity} Already exists", exc_info=True, extra=extra)
             raise AlreadyExistsError(e.entity)
