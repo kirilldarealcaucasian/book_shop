@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import pytest
 from httpx import AsyncClient, ASGITransport
 from pytest import fail
@@ -57,5 +59,45 @@ async def test_create_cart_with_auth(
         url=f"/v1/cart/",
         data=data,
         headers={"Authorization": get_jwt_token}
+    )
+    assert response.status_code == status_code
+
+
+@pytest.mark.asyncio(scope="session")
+@pytest.mark.parametrize(
+    "user_id,status_code",
+    [
+        (3, 200),
+        (2, 404),  # user without cart
+        (100, 404),  # user that doesn't exist
+    ]
+)
+async def test_get_cart_by_user_id(
+        ac: AsyncClient,
+        user_id: int,
+        status_code: int
+):
+    response = await ac.get(url=f"v1/cart/users/{user_id}")
+    assert response.status_code == status_code
+
+
+@pytest.mark.asyncio(scope="session")
+@pytest.mark.parametrize(
+    "session_id,status_code",
+    [
+        ("01e1ca73-5dea-46f2-a19b-56b5a7804efc", 200),
+        ("01e1ca73-5dea-46f2-a19b-56b5a7804efb", 404),
+        ("fdkjfdjfdjfjdhg", 422)
+    ]
+)
+async def test_get_cart_by_session_id(
+        ac: AsyncClient,
+        session_id: str,
+        status_code: int
+):
+    cookie = {f"{settings.SHOPPING_SESSION_COOKIE_NAME}": session_id}
+    response = await ac.get(
+        url=f"v1/cart/",
+        cookies=cookie
     )
     assert response.status_code == status_code

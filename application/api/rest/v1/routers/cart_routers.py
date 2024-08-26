@@ -2,13 +2,12 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, status, Cookie
 from fastapi.security import HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.helpers import CustomSecurity
 from application.services.cart_service import CartService
 from infrastructure.postgres import db_client
-from application.schemas import ReturnCartS, ShoppingSessionIdS
+from application.schemas import ReturnCartS
 from auth.services.permission_service import PermissionService
 from uuid import UUID
 
@@ -24,13 +23,13 @@ custom_security = CustomSecurity()
     response_model=ReturnCartS,
 )
 async def get_cart_by_session_id(
-        cart_session_id: UUID = Cookie(None),
+        shopping_session_id: Optional[UUID] = Cookie(None),
         service: CartService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
 ):
     return await service.get_cart_by_session_id(
         session=session,
-        cart_session_id=cart_session_id
+        shopping_session_id=shopping_session_id
     )
 
 

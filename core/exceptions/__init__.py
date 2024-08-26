@@ -13,7 +13,7 @@ __all__ = (
     "DomainModelConversionError",
     "DeletionError",
     "OrderingFilterError",
-    "NoCookieError"
+    "NoCookieError",
 )
 
 from core.exceptions.storage_exceptions import DuplicateError, DBError, NotFoundError, DeletionError
@@ -24,5 +24,5 @@ from core.exceptions.http_exceptions import (
     RelatedEntityDoesNotExist, FilterError,
     DomainModelConversionError,
     OrderingFilterError,
-    NoCookieError
+    NoCookieError,
 )

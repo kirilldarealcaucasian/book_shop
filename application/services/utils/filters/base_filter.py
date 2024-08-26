@@ -13,7 +13,14 @@ from logger import logger
 
 
 class BaseFilter(BaseModel):
+    """
+        Filters are extracted from query parameters in pydantic schemas
+        (for each filter there is a schema).
+        This class is used to construct sql statements based on filtering data
+    """
+
     def get_filtering_data(self):
+        """parses filter schema into key, value pairs"""
         filtering_fields: dict = self.model_dump(
             exclude_none=True,
             exclude_unset=True,
@@ -23,6 +30,7 @@ class BaseFilter(BaseModel):
         return filtering_fields.items()
 
     def filter(self, stmt: Select) -> Select:
+        """constructs sql statement based on filtering data"""
         for filter_name, filter_name_value in self.get_filtering_data():
             # example name__ilike=20 --> (name__ilike, 20)
 
@@ -58,6 +66,7 @@ class BaseFilter(BaseModel):
         return stmt
 
     def sort(self, stmt: Select) -> Select:
+        """constructs sql statement, applying sorting to it"""
         if not self.order_by:
             return stmt
 
@@ -82,6 +91,7 @@ class BaseFilter(BaseModel):
         Model: Any
 
     class FilterRules:
+        """mapper from query params to SQLALCHEMY params for filtering"""
         neq = lambda value: ("__ne__", value)
         gt = lambda value: ("__gt__", value)
         gte = lambda value: ("__ge__", value)

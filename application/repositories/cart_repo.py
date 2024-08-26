@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy import select, delete, and_
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from application import Book
 from application.models import CartItem, ShoppingSession
@@ -85,7 +85,6 @@ class CartRepository(OrmEntityRepository):
         except SQLAlchemyError as e:
             raise DBError(str(e))
 
-        print("CART: ", cart)
 
         if not cart:
             raise NotFoundError()
@@ -97,9 +96,8 @@ class CartRepository(OrmEntityRepository):
             session: AsyncSession,
             user_id: int
     ) -> list[CartItem]:
-        stmt = select(CartItem).options(
+        stmt = select(CartItem).join(CartItem.shopping_session).options(
             selectinload(CartItem.book).selectinload(Book.authors),
-            selectinload(CartItem.shopping_session),
             selectinload(CartItem.book).selectinload(Book.categories),
         ).where(ShoppingSession.user_id == user_id)
 

@@ -1,9 +1,11 @@
 import time
-from contextlib import asynccontextmanager
+from typing import Union
+
 import uvicorn
-from fastapi import FastAPI, Request
+from aioredis import Redis
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-import aioredis
+from fastapi.responses import JSONResponse
 from auth.routers import auth_router
 from application.api.rest.v1 import (
     image_router,
@@ -12,32 +14,14 @@ from application.api.rest.v1 import (
 )
 from core.config import settings
 from logger import logger
-from sqlalchemy import MetaData
+from infrastructure.redis import redis_client
+
+
 # from infrastructure.rabbitmq.connector import rabbit_connector
 
-redis = None
 
+app = FastAPI()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global redis
-    if not redis:
-        try:
-            redis = aioredis.from_url(
-                f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}", decode_responses=True)
-            yield
-            logger.info("Shutting down . . .")
-            # rabbit_connector.close_con()
-            # rabbit_connector.create_chan()
-            await redis.close()
-        except aioredis.exceptions.ConnectionError as e:
-            yield None
-        except ConnectionResetError as e:
-            yield None
-
-app = FastAPI(
-    lifespan=lifespan,
-)
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,6 +30,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["8"]
 )
+
 
 for router in (
         book_router, order_router,
@@ -63,7 +48,37 @@ async def add_process_time_header(request: Request, call_next):
     logger.info("Request execution time: ", extra={
         "request_process_time": round(process_time, 3)
     })
+    response.headers["X-Process-Time"] = str(process_time)
     return response
+
+if settings.MODE != "TEST":
+    @app.middleware("http")
+    async def throttle_requests(request: Request, call_next):
+        """aborts requests if request_counter >= threshold within time interval"""
+        redis_con: Union[Redis, None] = await redis_client.connect()
+
+        if not redis_con:
+            return await call_next(request)
+
+        client_ip: str = request.client.host
+        key = ":".join(["throttler", client_ip])
+
+        requests_counter = await redis_con.get(key)
+
+        if not requests_counter:
+            await redis_con.set(name=key, value=1, ex=1)
+
+        else:
+            if int(requests_counter) >= 10:
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={"error": "Too many requests"},
+                    headers={"Retry-After": "10"}
+                )
+            await redis_con.incr(
+                name=key,
+                amount=1)
+        return await call_next(request)
 
 
 @app.get("/")

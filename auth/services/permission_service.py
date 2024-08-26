@@ -67,20 +67,20 @@ class PermissionService(AuthRepository):
 
     async def get_cart_permission(
             self,
-            cart_session_id: UUID = Cookie(None),
+            shopping_session_id: UUID = Cookie(None),
             session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
             shopping_session_service: ShoppingSessionService = Depends(),
     ) -> UUID:
-        if not cart_session_id:
+        if not shopping_session_id:
             raise NoCookieError("No shopping_session_id in the cookie")
 
         shopping_session: ReturnShoppingSessionS = await shopping_session_service.get_shopping_session_by_id(
             session=session,
-            id=cart_session_id
+            id=shopping_session_id
         )
 
         if shopping_session:
-            return cart_session_id
+            return shopping_session_id
 
     async def get_authorized_permission(
             self,

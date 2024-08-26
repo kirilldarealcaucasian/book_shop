@@ -12,7 +12,7 @@ from application.schemas import (
     ReturnImageS,
     ReturnBookS,
     UpdateBookS,
-    UpdatePartiallyBookS,
+    UpdatePartiallyBookS, BookIdS,
 )
 
 from application.repositories import BookRepository, ImageRepository
@@ -102,7 +102,7 @@ class BookService(EntityBaseService):
 
     async def create_book(
             self, session: AsyncSession, dto: CreateBookS
-    ) -> None:
+    ) -> BookIdS:
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = BookS(**dto)
@@ -112,13 +112,16 @@ class BookService(EntityBaseService):
                 extra={"dto": dto},
                 exc_info=True
             )
-            raise DomainModelConversionError(detail="Failed to generate domain model")
+            raise DomainModelConversionError()
 
-        return await super().create(
+        book_id: UUID = await super().create(
                 repo=self.book_repo,
                 session=session,
                 domain_model=domain_model
             )
+        return BookIdS(
+            id=book_id
+        )
 
     async def delete_book(
             self,

@@ -20,7 +20,7 @@ from application.schemas.domain_model_schemas import CartItemS
 from uuid import UUID
 
 from core.config import settings
-from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError
+from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError, NoCookieError
 from logger import logger
 
 
@@ -48,15 +48,16 @@ class CartService(EntityBaseService):
     async def get_cart_by_session_id(
         self,
         session: AsyncSession,
-        cart_session_id: UUID
+        shopping_session_id: UUID | None
     ) -> ReturnCartS:
         """retrieves books in a cart and cart session_id"""
+
         cart: list[CartItem] = []
 
         try:
             cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
                 session=session,
-                cart_session_id=cart_session_id,
+                cart_session_id=shopping_session_id,
             )
         except (NotFoundError, DBError) as e:
             if type(e) == NotFoundError:

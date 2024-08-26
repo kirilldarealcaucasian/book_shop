@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     DB_PORT: int
     DB_NAME: str
 
-
     TEST_POSTGRES_USER: str
     TEST_POSTGRES_PASSWORD: str
     TEST_POSTGRES_SERVER: str
