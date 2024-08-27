@@ -3,11 +3,13 @@ from fastapi import Depends, status, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from application.services import BookService
 from infrastructure.postgres import db_client
-from application.schemas import (ReturnBookS,
-                                 CreateBookS,
-                                 UpdateBookS,
-                                 UpdatePartiallyBookS, BookIdS
-                                 )
+from application.schemas import (
+    ReturnBookS,
+    CreateBookS,
+    UpdateBookS,
+    UpdatePartiallyBookS,
+    BookIdS
+)
 from core.utils.cache import cachify
 from datetime import timedelta
 from application.services.utils.filters import BookFilter, Pagination

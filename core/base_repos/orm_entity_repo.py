@@ -148,4 +148,4 @@ class OrmEntityRepository:
         try:
             await session.commit()
         except SQLAlchemyError:
-            logger.error("Error while commiting session", exc_info=True)
+            logger.error("Error while committing session", exc_info=True)

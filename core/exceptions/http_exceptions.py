@@ -43,7 +43,7 @@ class InvalidModelCredentials(HTTPException):
 
 
 class EntityDoesNotExist(HTTPException):
-    def __init__(self, entity="Entity"):
+    def __init__(self, entity="Entity "):
         super().__init__(
             detail=f"{entity} does not exist",
             status_code=status.HTTP_404_NOT_FOUND,
@@ -92,6 +92,14 @@ class OrderingFilterError(HTTPException):
         super().__init__(
             detail="incorrect format for order_by filter",
             status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class OutOfStockQuantity(HTTPException):
+    def __init__(self, detail: str):
+        super().__init__(
+            detail=detail,
+            status_code=status.HTTP_409_CONFLICT
         )
 
 

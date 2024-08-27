@@ -44,7 +44,8 @@ __all__ = (
     "ShoppingSessionIdS",
     "CartSessionId",
     "AddBookToCartS",
-    "BookIdS"
+    "BookIdS",
+    "DeleteBookFromCartS"
 )
 
 from application.schemas.book_schemas import (
@@ -108,7 +109,8 @@ from application.schemas.shopping_session_schemas import (
 from application.schemas.cart_schemas import (
     ReturnCartS,
     AddBookToCartS,
-    CartSessionId
+    CartSessionId,
+    DeleteBookFromCartS
 )
 
 from application.schemas.filters import BookFilterS

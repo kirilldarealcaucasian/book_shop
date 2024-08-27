@@ -32,10 +32,12 @@ class ShoppingSessionRepository(OrmEntityRepository):
         session: AsyncSession,
         id: UUID
     ) -> ShoppingSession:
-        stmt = select(self.model).options(
+        stmt = select(self.model).where(
+            self.model.id == str(id)
+        ).options(
             selectinload(self.model.user),
             selectinload(self.model.cart_items)
-        ).where(ShoppingSession.id == str(id))
+        )
 
         try:
             res = (await session.execute(stmt)).scalar_one_or_none()

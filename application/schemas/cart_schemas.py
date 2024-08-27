@@ -10,10 +10,12 @@ class ReturnCartS(BaseModel):
 
 class AddBookToCartS(BaseModel):
     book_id: UUID | str | int
-    session_id: UUID | str | int
     quantity: int
 
 
 class CartSessionId(BaseModel):
     session_id: UUID
+
+class DeleteBookFromCartS(BaseModel):
+    book_id: UUID
 

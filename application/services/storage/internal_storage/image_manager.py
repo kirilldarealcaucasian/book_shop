@@ -1,11 +1,8 @@
-import io
-
 from fastapi import HTTPException, status, UploadFile
 from datetime import datetime
 from core import ImageConfig
 from os import path
 from typing import TypedDict
-from PIL import Image
 
 from core.exceptions import ServerError
 from logger import logger

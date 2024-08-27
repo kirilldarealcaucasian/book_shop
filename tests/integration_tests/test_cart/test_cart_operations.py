@@ -1,7 +1,8 @@
+import json
 from uuid import UUID
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient, ASGITransport, Request
 from pytest import fail
 from application.cmd import app
 from core.config import settings
@@ -100,4 +101,95 @@ async def test_get_cart_by_session_id(
         url=f"v1/cart/",
         cookies=cookie
     )
+    assert response.status_code == status_code
+
+
+@pytest.mark.asyncio(scope="session")
+@pytest.mark.parametrize(
+    "shopping_session_id,data,status_code",
+    [
+        (
+                "01e1ca73-5dea-46f2-a19b-56b5a7804efc",
+                {
+                    "book_id": "0b003aac-25dc-4fd6-8f89-e2ba796c6386",
+                    "quantity": 1
+                }, 200
+        ),
+
+        (
+                "01e1ca73-5dea-46f2-a19b-56b5a7804efc",
+                {
+                    "book_id": "0b003aac-25dc-4fd6-8f89-e2ba796c6386",
+                    "quantity": 100
+                },
+                409
+        )
+    ]
+)
+async def test_add_book_to_cart(
+        ac: AsyncClient,
+        shopping_session_id: str,
+        data: dict,
+        status_code: int
+):
+    response = await ac.post(
+        url=f"v1/cart/items",
+        json=data,
+        cookies={"shopping_session_id": shopping_session_id}
+    )
+    assert response.status_code == status_code
+
+
+async def test_increment_book_amount_in_cart(
+        ac: AsyncClient
+):
+    data = {
+        "book_id": "0b003aac-25dc-4fd6-8f89-e2ba796c6386",
+        "quantity": 1
+    }
+    response = await ac.post(
+        url=f"v1/cart/items",
+        json=data,
+        cookies={"shopping_session_id": "01e1ca73-5dea-46f2-a19b-56b5a7804efc"}
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio(scope="session")
+@pytest.mark.parametrize(
+        "data,status_code",
+        [
+            (
+                    {
+                        "session_id": "01e1ca73-5dea-46f2-a19b-56b5a7804efc",
+                        "book_id": "0b003aac-25dc-4fd6-8f89-e2ba796c6386"
+                    },
+                    200
+            ),
+            (
+                    {
+                        "session_id": "01e1ca73-5dea-46f2-a19b-56b5a7804efc",
+                        "book_id": "657dab80-50ff-45d9-a242-ac0357d97417"
+                    },
+                    404
+            ),
+        ]
+    )
+async def test_delete_book_from_cart_by_session_id(
+        ac: AsyncClient,
+        data: dict,
+        status_code: int
+):
+    book_id = {"book_id": data["book_id"]}
+
+    request = Request(
+        method="DELETE",
+        url="http://test/v1/cart/items",
+        headers={"Content-Type": "application/json"},
+        json=book_id,
+        cookies={"shopping_session_id": data["session_id"]}
+    )
+
+    response = await ac.send(request)
+
     assert response.status_code == status_code

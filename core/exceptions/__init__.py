@@ -14,6 +14,7 @@ __all__ = (
     "DeletionError",
     "OrderingFilterError",
     "NoCookieError",
+    "OutOfStockQuantity"
 )
 
 from core.exceptions.storage_exceptions import DuplicateError, DBError, NotFoundError, DeletionError
@@ -25,4 +26,5 @@ from core.exceptions.http_exceptions import (
     DomainModelConversionError,
     OrderingFilterError,
     NoCookieError,
+    OutOfStockQuantity
 )

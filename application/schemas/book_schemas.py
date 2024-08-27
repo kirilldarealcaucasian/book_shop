@@ -33,7 +33,7 @@ class UpdatePartiallyBookS(BaseModel):
     isbn: str | None = None
     description: str | None = None
     price_per_unit: float | None = Field(default=None, ge=0)
-    number_in_stock: int | None = Field(default=None, ge=1)
+    number_in_stock: int | None = Field(default=None, ge=0)
     rating: float | None = None
     discount: int | None = None
 

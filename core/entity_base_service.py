@@ -1,10 +1,11 @@
 from uuid import UUID
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar, Generic
 from core.exceptions import RepositoryResolutionError, \
-    DuplicateError,  AlreadyExistsError
+    DuplicateError, AlreadyExistsError, ServerError
 from application.schemas import (
     CreateBookS,
     CreateOrderS,
@@ -189,4 +190,11 @@ class EntityBaseService(
 
     ) -> None:
         _ = await self.repository_resolver(repo).delete(instance_id=instance_id, session=session)
+
+    async def commit(self, session: AsyncSession):
+        try:
+            await session.commit()
+        except SQLAlchemyError as e:
+            logger.info("failed to commit transaction", exc_info=True)
+            raise ServerError()
 

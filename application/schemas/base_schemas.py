@@ -15,7 +15,7 @@ class BookBaseS(Config):
     name: str = Field(min_length=2)
     description: str | None
     price_per_unit: float = Field(ge=1.0)
-    number_in_stock: int = Field(ge=1)
+    number_in_stock: int = Field(ge=0)
 
 
 class OrderBaseS(Config):

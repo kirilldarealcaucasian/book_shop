@@ -1,13 +1,13 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status, Cookie
+from fastapi import APIRouter, Depends, status, Cookie, Body
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.helpers import CustomSecurity
 from application.services.cart_service import CartService
 from infrastructure.postgres import db_client
-from application.schemas import ReturnCartS
+from application.schemas import ReturnCartS, AddBookToCartS, DeleteBookFromCartS
 from auth.services.permission_service import PermissionService
 from uuid import UUID
 
@@ -80,35 +80,39 @@ async def delete_cart(
     )
 
 
-# @router.post(
-#     '/items',
-#     dependencies=[Depends(PermissionService().get_cart_permission)],
-#     status_code=status.HTTP_200_OK,
-# )
-# async def add_book_to_cart(
-#         data: AddBookToCartS,
-#         cart_session_id: UUID = Cookie(None),
-#         service: CartService = Depends(),
-#         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
-# ):
-#     return await service.add_book_to_cart(
-#         session=session,
-#         dto=data,
-#         session_id=cart_session_id
-#     )
+@router.post(
+    '/items',
+    dependencies=[Depends(PermissionService().get_cart_permission)],
+    status_code=status.HTTP_200_OK,
+)
+async def add_book_to_cart(
+        data: AddBookToCartS,
+        shopping_session_id: UUID = Cookie(None),
+        service: CartService = Depends(),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
+):
+    return await service.add_book_to_cart(
+        session=session,
+        dto=data,
+        session_id=shopping_session_id
+    )
 
 
-# @router.delete("/items", status_code=status.HTTP_204_NO_CONTENT)
-# async def delete_book_from_cart(
-#         # book_id: UUID = Body(),
-#         cart_session_id: UUID = Cookie(None),
-#         service: CartService = Depends(),
-#         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
-# ) -> None:
-#     return await service.delete_book_from_cart(
-#         session=session,
-#         book_id=book_id,
-#         cart_session_id=cart_session_id
-#     )
+@router.delete(
+    "/items",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(PermissionService().get_cart_permission)]
+)
+async def delete_book_from_cart(
+        book_id: DeleteBookFromCartS,
+        shopping_session_id: UUID = Cookie(None),
+        service: CartService = Depends(),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
+) -> ReturnCartS:
+    return await service.delete_book_from_cart(
+        session=session,
+        book_id=book_id.book_id,
+        shopping_session_id=shopping_session_id
+    )
 
 

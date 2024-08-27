@@ -1,26 +1,17 @@
 from uuid import UUID
-
-from fastapi import Depends
 from sqlalchemy import select, delete, and_
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import selectinload
 
 from application import Book
 from application.models import CartItem, ShoppingSession
-from application.repositories import ShoppingSessionRepository
-from application.repositories.book_repo import CombinedBookRepoInterface, BookRepository
-from application.schemas import CartSessionId
 from core import OrmEntityRepository
 from core.base_repos import OrmEntityRepoInterface
-from typing import Protocol, Union, Annotated
-from application.schemas.domain_model_schemas import CartItemS, BookS
+from typing import Protocol, Union
+from application.schemas.domain_model_schemas import BookS
 from core.exceptions import NotFoundError, DBError, DeletionError
 from logger import logger
-
-
-# from core.exceptions import DeletionError, DBError
-# from logger import logger
 
 
 class CartRepositoryInterface(Protocol):
@@ -47,8 +38,9 @@ class CartRepositoryInterface(Protocol):
 
     async def delete_book_from_cart_by_session_id(
             self,
-            session_id: str,
-            domain_model: BookS
+            session: AsyncSession,
+            session_id: UUID,
+            book_id: UUID,
     ):
         ...
 
@@ -85,7 +77,6 @@ class CartRepository(OrmEntityRepository):
         except SQLAlchemyError as e:
             raise DBError(str(e))
 
-
         if not cart:
             raise NotFoundError()
 
@@ -112,52 +103,22 @@ class CartRepository(OrmEntityRepository):
 
         return list(cart)
 
-    async def add_book_to_cart_by_session_id(
-            self,
-            session: AsyncSession,
-            session_id: str,
-            domain_model: BookS
-    ) -> None:
-        # stmt = insert(self.model)\
-        #     .where(self.model.session_id == session_id)\
-        #     .values(domain_model.model_dump())
-        pass
-        # _ = await session.execute(stmt)
-        # await super().commit(session)
-
     async def delete_book_from_cart_by_session_id(
             self,
             session: AsyncSession,
             session_id: UUID,
-            book_id: str,
+            book_id: UUID,
     ) -> None:
-        cart = self.get_cart_by_session_id(session=session, cart_session_id=session_id)
         stmt = delete(self.model).where(
             and_(self.model.session_id == session_id, self.model.book_id == book_id))
 
-        res = None
-
         try:
-            res = await session.excute(stmt)
-        except IntegrityError:
-            extra = {"session_id": session, "book_id": book_id}
-            logger.error(
-                f"Integrity deletion error: Error while deleting book from {self.model} due to Integrity error",
-                extra,
-                exc_info=True
-            )
-            raise DBError(f"Failed to delete a book from {self.model}")
-
-        await super().commit(session)
-
-        if res and res.rowcount == 0:
-            extra = {"session_id": session, "book_id": book_id}
-            logger.error(
-                f"Deletion error: Error while deleting book from {self.model}",
-                extra,
-                exc_info=True
-            )
-            raise DeletionError(entity="Book", info="Book to delete wasn't found")
+            res = await session.execute(stmt)
+            await super().commit(session)
+            if res.rowcount == 0:
+                raise NotFoundError()
+        except (SQLAlchemyError, IntegrityError) as e:
+            raise DBError(traceback=str(e))
 
     async def delete_cart_by_shopping_session_id(
             self,
@@ -169,6 +130,5 @@ class CartRepository(OrmEntityRepository):
         try:
             await session.execute(stmt)
         except SQLAlchemyError as e:
-            extra = {"shopping_session_id": shopping_session_id}
             raise DBError(traceback=str(e))
         await session.commit()

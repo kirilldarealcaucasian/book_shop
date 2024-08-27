@@ -2,15 +2,15 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
 
+from application import Book
 from application.models import CartItem
 from application.repositories import CartRepository, ShoppingSessionRepository
 from application.repositories.book_repo import CombinedBookRepoInterface, BookRepository
 from application.repositories.cart_repo import CombinedCartRepositoryInterface
 from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
 from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS, CreateShoppingSessionS
-from application.services import UserService, ShoppingSessionService
+from application.services import UserService, ShoppingSessionService, BookService
 from application.services.utils import cart_assembler
 from auth.helpers import get_token_payload
 from core import EntityBaseService
@@ -20,7 +20,8 @@ from application.schemas.domain_model_schemas import CartItemS
 from uuid import UUID
 
 from core.config import settings
-from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError, NoCookieError
+from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError, \
+    OutOfStockQuantity
 from logger import logger
 
 
@@ -36,7 +37,8 @@ class CartService(EntityBaseService):
                 CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
         ],
         shopping_session_service: ShoppingSessionService = Depends(),
-        user_service: UserService = Depends()
+        user_service: UserService = Depends(),
+        book_service: BookService = Depends()
     ):
         self.book_repo = book_repo
         self.shopping_session_repo = shopping_session_repo
@@ -44,6 +46,7 @@ class CartService(EntityBaseService):
         super().__init__(cart_repo=cart_repo)
         self.shopping_session_service = shopping_session_service
         self.user_service = user_service
+        self.book_service = book_service
 
     async def get_cart_by_session_id(
         self,
@@ -167,16 +170,40 @@ class CartService(EntityBaseService):
             session: AsyncSession,
             session_id: UUID,
             dto: AddBookToCartS,
-    ):
-        domain_model = CartItemS(**dto.model_dump(exclude_none=True))
+    ) -> ReturnCartS:
+        """Adds a book to the cart / increments amount of ordered books"""
+        domain_model = CartItemS(**dto.model_dump(exclude_none=True), session_id=session_id)
 
-        _ = await super().get_by_id(
-            session=session, repo=self.book_repo, id=dto.book_id
+        _ = await self.book_service.get_book_by_id(
+            session=session,
+            id=dto.book_id
         )  # if not exists, exception will be raised
 
-        _ = await super().get_by_id(
-            session=session, repo=self.shopping_session_repo, id=dto.book_id
-        )  # if not exists, exception will be raised
+        cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
+            session=session,
+            cart_session_id=session_id
+        )
+
+        for cart_item in cart:
+            """check if book already in teh cart, if it is, then increment amount"""
+            book: Book = cart_item.book
+            if str(cart_item.book_id) == str(domain_model.book_id):
+
+                if book.number_in_stock - domain_model.quantity >= 0:
+                    cart_item.quantity += domain_model.quantity
+                    book.number_in_stock -= cart_item.quantity
+                    await super().commit(session=session)
+
+                    cart: ReturnCartS = await self.get_cart_by_session_id(
+                        session=session,
+                        shopping_session_id=session_id
+                    )
+
+                    return cart
+                else:
+                    raise OutOfStockQuantity(
+                        f"Only {book.number_in_stock} books left in stock"
+                    )
 
         await super().create(
             session=session,
@@ -184,36 +211,55 @@ class CartService(EntityBaseService):
             domain_model=domain_model
         )
 
-        return await self.get_cart_by_session_id(
+        cart: ReturnCartS = await self.get_cart_by_session_id(
             session=session,
-            cart_session_id=session_id
+            shopping_session_id=session_id
         )
+
+        return cart
 
     async def delete_book_from_cart(
             self,
             session: AsyncSession,
             book_id: UUID,
-            cart_session_id: UUID
+            shopping_session_id: UUID
 
-    ):
-        _ = await super().get_by_id(
-            session=session, repo=self.book_repo, id=book_id
-        )  # if not exists, exception will be raised
+    ) -> ReturnCartS:
 
-        _ = await super().get_by_id(
-            session=session, repo=self.shopping_session_repo, id=cart_session_id
+        _ = await self.book_service.get_book_by_id(
+            session=session,
+            id=book_id
         )  # if not exists, exception will be raised
 
         try:
-            _ = await self.cart_repo.delete_cart_by_shopping_session_id(
+            _ = await self.cart_repo.delete_book_from_cart_by_session_id(
                 session=session,
-                shopping_session_id=cart_session_id
+                session_id=shopping_session_id,
+                book_id=book_id
             )
-        except SQLAlchemyError as e:
-            extra = {"book_id": book_id, "cart_session_id": cart_session_id}
+
+        except DBError as e:
+            extra = {"session_id": session, "book_id": book_id}
             logger.error(
-                f"failed to delete book from cart",
-                extra=extra,
+                f"Deletion error: Error while deleting book from cart",
+                extra,
                 exc_info=True
             )
-            raise DBError("Something went wrong")
+            raise ServerError(
+                detail="Something went wrong. Failed to delete book from cart."
+            )
+        except NotFoundError as e:
+            extra = {"session_id": session, "book_id": book_id}
+            logger.debug(
+                f"Book that was tried to bed deleted from the cart wasn't found",
+                extra,
+                exc_info=True
+            )
+            raise EntityDoesNotExist(entity="Book")
+
+        cart: ReturnCartS = await self.get_cart_by_session_id(
+            session=session,
+            shopping_session_id=shopping_session_id
+        )
+
+        return cart

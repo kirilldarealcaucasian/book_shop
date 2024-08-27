@@ -159,7 +159,6 @@ class OrderService(EntityBaseService):
                 AssocBookS(
                     book_title=book.name,
                     authors=authors,
-                    genre_name=book.genre_name,
                     rating=book.rating,
                     discount=book.discount,
                     price_per_unit=book.price_per_unit,
