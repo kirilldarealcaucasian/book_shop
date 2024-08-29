@@ -1,5 +1,4 @@
 import json
-import base64
 from time import strptime, mktime
 from core.config import settings
 

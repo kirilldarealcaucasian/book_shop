@@ -106,7 +106,7 @@ class BookService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = BookS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},
@@ -150,7 +150,7 @@ class BookService(EntityBaseService):
 
         try:
             domain_model = BookS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},

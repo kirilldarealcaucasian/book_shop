@@ -4,7 +4,7 @@ from application.schemas.order_schemas import AssocBookS
 
 
 class ReturnCartS(BaseModel):
-    cart_id: UUID
+    cart_id: UUID | str
     books: list[AssocBookS]
 
 

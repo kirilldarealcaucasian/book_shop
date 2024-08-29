@@ -35,7 +35,7 @@ async def test_get_book_by_id(
 
 @pytest.mark.asyncio(scope="session")
 async def test_get_all_books(ac):
-    response = await ac.get(url=f"v1/books")
+    response = await ac.get(url="v1/books")
     assert response.status_code == 200
 
 

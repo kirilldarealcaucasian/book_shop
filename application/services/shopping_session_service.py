@@ -56,7 +56,7 @@ class ShoppingSessionService(EntityBaseService):
         try:
             domain_model = ShoppingSessionS(**dto)
             domain_model.expiration_time = datetime.now() + settings.SHOPPING_SESSION_EXPIRATION_TIMEDELTA
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             extra = {"dto": dto}
             logger.error("failed to convert to domain model", extra, exc_info=True)
             raise DomainModelConversionError
@@ -81,7 +81,7 @@ class ShoppingSessionService(EntityBaseService):
 
         try:
             domain_model = ShoppingSessionS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             extra = {"dto": dto}
             logger.error("failed to convert to domain model", extra, exc_info=True)
             raise DomainModelConversionError

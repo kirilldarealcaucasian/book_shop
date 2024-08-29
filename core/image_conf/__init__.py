@@ -1,5 +1,5 @@
 __all__ = (
-    "ImageConfig"
+    "ImageConfig",
 )
 
 from core.image_conf.conf import ImageConfig

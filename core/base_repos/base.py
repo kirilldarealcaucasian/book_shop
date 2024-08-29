@@ -1,4 +1,3 @@
-from sqlalchemy import ResultProxy
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Protocol, TypeVar
 

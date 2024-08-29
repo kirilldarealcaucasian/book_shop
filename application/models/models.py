@@ -9,7 +9,11 @@ from sqlalchemy import (
     BIGINT,
     Computed,
     DateTime,
-    Index, MetaData, Table, Column, Integer
+    Index,
+    MetaData,
+    Table,
+    Column,
+    Integer
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -35,7 +39,7 @@ __all__ = (
     "Category",
     "ShoppingSession",
     "CartItem",
-    "PaymentDetail"
+    "PaymentDetail",
 )
 
 Gender = Literal["male", "female"]

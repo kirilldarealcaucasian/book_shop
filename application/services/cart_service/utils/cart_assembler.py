@@ -18,6 +18,7 @@ def cart_assembler(cart_items: list[CartItem]) -> ReturnCartS:
 
         books.append(
             AssocBookS(
+                book_id=cart_item.book.id,
                 book_title=cart_item.book.name,
                 authors=authors,
                 categories=categories,

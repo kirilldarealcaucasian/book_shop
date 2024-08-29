@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4, ConfigDict
+from pydantic import BaseModel, UUID4
 
 
 class BookS(BaseModel, validate_assignment=True):

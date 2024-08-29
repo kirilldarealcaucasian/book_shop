@@ -1,7 +1,8 @@
 __all__ = (
     "construct_url",
     "CustomSecurity",
-    "generate_uuid"
+    "generate_uuid",
+    "get_image_format",
 )
 
 from application.helpers.image_helpers import construct_url, get_image_format

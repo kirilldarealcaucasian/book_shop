@@ -1,6 +1,6 @@
 from core import OrmEntityRepository
-from application.models import Author
 
 
 class AuthorRepository(OrmEntityRepository):
+    from application.models import Author
     model: Author = Author

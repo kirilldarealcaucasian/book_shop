@@ -85,7 +85,7 @@ class BookRepository(OrmEntityRepository):
 
         try:
             books = list((await session.scalars(stmt)).all())
-        except CompileError as e:
+        except CompileError:
             raise FilterError()
 
         logger.debug("books: ", extra={"books": books})

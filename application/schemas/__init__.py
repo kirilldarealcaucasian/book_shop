@@ -5,6 +5,7 @@ __all__ = (
     "ReturnUserS",
     "ReturnImageS",
     "ReturnUserWithOrdersS",
+    "ReturnCartS",
     "ReturnOrderIdS",
     "ReturnAuthorS",
     "ReturnPublisherS",
@@ -110,7 +111,7 @@ from application.schemas.cart_schemas import (
     ReturnCartS,
     AddBookToCartS,
     CartSessionId,
-    DeleteBookFromCartS
+    DeleteBookFromCartS,
 )
 
 from application.schemas.filters import BookFilterS

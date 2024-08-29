@@ -1,6 +1,3 @@
-import json
-from uuid import UUID
-
 import pytest
 from httpx import AsyncClient, ASGITransport, Request
 from pytest import fail
@@ -34,7 +31,7 @@ async def get_jwt_token(request) -> str:
 
 @pytest.mark.asyncio(scope="session")
 async def test_create_cart_without_auth(ac: AsyncClient):
-    response = await ac.post(url=f"/v1/cart/")
+    response = await ac.post(url="/v1/cart/")
     cookie = response.cookies.get(name=settings.SHOPPING_SESSION_COOKIE_NAME)
     if not cookie:
         fail(reason="No cookie in the response")
@@ -57,7 +54,7 @@ async def test_create_cart_with_auth(
 ):
     data = {"user_id": user_id}
     response = await ac.post(
-        url=f"/v1/cart/",
+        url="/v1/cart/",
         data=data,
         headers={"Authorization": get_jwt_token}
     )
@@ -98,7 +95,7 @@ async def test_get_cart_by_session_id(
 ):
     cookie = {f"{settings.SHOPPING_SESSION_COOKIE_NAME}": session_id}
     response = await ac.get(
-        url=f"v1/cart/",
+        url="v1/cart/",
         cookies=cookie
     )
     assert response.status_code == status_code
@@ -133,7 +130,7 @@ async def test_add_book_to_cart(
         status_code: int
 ):
     response = await ac.post(
-        url=f"v1/cart/items",
+        url="v1/cart/items",
         json=data,
         cookies={"shopping_session_id": shopping_session_id}
     )
@@ -148,7 +145,7 @@ async def test_increment_book_amount_in_cart(
         "quantity": 1
     }
     response = await ac.post(
-        url=f"v1/cart/items",
+        url="v1/cart/items",
         json=data,
         cookies={"shopping_session_id": "01e1ca73-5dea-46f2-a19b-56b5a7804efc"}
     )

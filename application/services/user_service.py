@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.repositories.user_repo import UnitedUserInterface
 from application.schemas.domain_model_schemas import UserS
-from core import EntityBaseService
 from application.repositories import UserRepository
 from application.schemas import (
     ReturnUserS,
@@ -15,9 +14,10 @@ from application.schemas import (
     ReturnUserWithOrdersS,
 )
 from application.schemas.filters import PaginationS
-from core.exceptions import EntityDoesNotExist, DomainModelConversionError, NotFoundError, ServerError, \
+from core.exceptions import EntityDoesNotExist, NotFoundError, ServerError, \
     InvalidModelCredentials
 from logger import logger
+from core.entity_base_service import EntityBaseService
 
 
 class UserService(EntityBaseService):
@@ -76,7 +76,7 @@ class UserService(EntityBaseService):
 
         try:
             domain_model = UserS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr, Field
 from application.schemas.book_schemas import BookSummaryS
 from application.schemas.base_schemas import OrderBaseS
@@ -28,6 +30,7 @@ class OrderSummaryS(BaseModel):
 
 
 class AssocBookS(BaseModel):
+    book_id: UUID
     book_title: str
     authors: list[str]
     categories: list[Category]

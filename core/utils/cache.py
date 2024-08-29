@@ -33,7 +33,6 @@ def cachify(instance_return_schema, cache_time: timedelta | int) -> Callable:
             instance = await redis.get(str(instance_id))
 
             if instance:
-                print("INSTANCE RETURN SCH: ", instance_return_schema)
                 return json.loads(instance)  # return value from redis
 
             else:
@@ -46,7 +45,7 @@ def cachify(instance_return_schema, cache_time: timedelta | int) -> Callable:
                 instance_id_to_fix = final_instance["id"]
                 logger.debug(msg="instance id", exc_info={"instance_id_to_fix": instance_id_to_fix})
 
-                if instance_id_to_fix and type(instance_id_to_fix) != str:
+                if instance_id_to_fix and type(instance_id_to_fix) is str:
                     # uuid is not json serializable, so we need to convert it to string
                     del final_instance["id"]
                     final_instance["id"] = str(instance_id_to_fix)

@@ -1,5 +1,5 @@
 from celery import Celery
-from celery.schedules import crontab
+# from celery.schedules import crontab
 
 from core.config import settings
 

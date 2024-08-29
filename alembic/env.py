@@ -9,19 +9,19 @@ from alembic import context
 from core.config import settings
 from application.models import (
         Base,
-        User,
-        Order,
-        BookOrderAssoc,
-        Author,
-        Publisher,
-        Book,
-        Image,
-        ShoppingSession,
-        CartItem,
-        PaymentDetail,
-        CartItem,
-        BookCategoryAssoc,
-        Category
+        User, # noqa
+        Order, # noqa
+        BookOrderAssoc, # noqa
+        Author, # noqa
+        Publisher, # noqa
+        Book, # noqa
+        Image, # noqa
+        ShoppingSession, # noqa
+        CartItem, # noqa
+        PaymentDetail, # noqa
+        CartItem, # noqa
+        BookCategoryAssoc, # noqa
+        Category # noqa
 )
 
 from dotenv import load_dotenv

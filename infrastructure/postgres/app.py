@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, async_scoped_session, AsyncSession
-from sqlalchemy.exc import SQLAlchemyError, DatabaseError
+from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import AsyncGenerator
 
 from asyncio import current_task

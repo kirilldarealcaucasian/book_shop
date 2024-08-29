@@ -6,7 +6,8 @@ __all__ = (
     "AuthorService",
     "PublisherService",
     "CategoryService",
-    "ShoppingSessionService"
+    "ShoppingSessionService",
+    "CartService",
 )
 
 from application.services.order_service import OrderService
@@ -17,4 +18,5 @@ from application.services.publisher_service import PublisherService
 from application.services.image_service import ImageService
 from application.services.category_service import CategoryService
 from application.services.shopping_session_service import ShoppingSessionService
+from application.services.cart_service import CartService
 

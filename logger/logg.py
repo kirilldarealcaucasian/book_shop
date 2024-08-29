@@ -3,7 +3,6 @@ from datetime import datetime
 from pythonjsonlogger import jsonlogger
 from dotenv import load_dotenv
 from core.config import settings
-import os
 
 load_dotenv()
 
@@ -23,7 +22,8 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
 LOG_LEVEL = settings.LOG_LEVEL
 LOGS_JOURNAL_PATH = settings.LOGS_JOURNAL_PATH
 
-formatter = CustomJsonFormatter('%(timestamp)s %(level)s %(pathname)s: %(message)s')
+logs_file_formatter = CustomJsonFormatter('%(timestamp)s %(level)s %(pathname)s: %(message)s')
+console_formatter = CustomJsonFormatter('%%(level)s %(pathname)s: %(message)s')
 
 # init default logger
 logger = logging.getLogger()
@@ -35,12 +35,12 @@ logger = logging.getLogger()
 # )
 
 # file_handler.setLevel(LOG_LEVEL)
-# file_handler.setFormatter(formatter)
+# file_handler.setFormatter(logs_file_formatter)
 
 
 # define format for logs in the console and where to stream logs
 logHandler = logging.StreamHandler()
-logHandler.setFormatter(formatter)
+logHandler.setFormatter(console_formatter)
 logger.setLevel(LOG_LEVEL)
 
 

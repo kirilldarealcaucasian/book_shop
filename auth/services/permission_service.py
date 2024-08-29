@@ -6,8 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Annotated
 
-from application.schemas import ReturnCartS, ReturnShoppingSessionS
-from application.services.cart_service import CartService
+from application.schemas import ReturnShoppingSessionS
 from auth.helpers import get_token_payload
 from auth.repositories import AuthRepository
 from application.models import Order
@@ -16,7 +15,6 @@ from application.repositories.order_repo import CombinedOrderRepositoryInterface
 from application.services import OrderService, UserService, ShoppingSessionService
 from infrastructure.postgres import db_client
 from core.exceptions import UnauthorizedError, NoCookieError
-from logger import logger
 
 
 class PermissionService(AuthRepository):

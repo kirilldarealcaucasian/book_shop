@@ -1,7 +1,6 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv, find_dotenv
-from datetime import timedelta
 
 load_dotenv(find_dotenv("../.env"))
 

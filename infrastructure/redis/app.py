@@ -43,14 +43,15 @@ class RedisConnector:
             )
         try:
             if self.reconnect_retrials == 0:
-                raise TypeError
+                raise TypeError  # manually raise this error so that the
+                # exception scenario took action
             self.reconnect_retrials -= 1
             pong = await redis_con.ping()
             if pong == b'PONG':
                 logger.info(f"Successful connection to redis on redis://{self.host}:{self.port}")
             self.connection = redis_con
             return redis_con
-        except (TypeError, RedisError) as e:
+        except (TypeError, RedisError):
             extra = {
                 "redis_host": self.host,
                 "redis_port": self.port
@@ -61,6 +62,12 @@ class RedisConnector:
                 exc_info=True
                 )
             return None
+
+    async def get_redis_connection_dependency(self) -> Connection:
+        redis_con = self.connection
+        if redis_con is None:
+            return await redis_client.connect()
+        return redis_con
 
 
 redis_client = RedisConnector(

@@ -1,4 +1,4 @@
-__all__ = ("CreateBookS", "Book", "User")
+__all__ = ("CreateBookS", "Book", "User",)
 
 
 from application.schemas import CreateBookS

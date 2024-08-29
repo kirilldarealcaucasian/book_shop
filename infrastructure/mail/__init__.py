@@ -1,5 +1,5 @@
 __all__ = (
-    "MailClient"
+    "MailClient",
 )
 
 from infrastructure.mail.client import MailClient

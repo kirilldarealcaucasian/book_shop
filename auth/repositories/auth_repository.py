@@ -63,7 +63,7 @@ class AuthRepository:
             except (TypeError, DBAPIError) as e:
                 logger.error("failed to add user: ", e)
                 raise DBError(traceback=str(e))
-            except NoSuchTableError as e:
+            except NoSuchTableError:
                 extra = {"data": data}
                 logger.error("Database error: User table does not exist", extra=extra, exc_info=True)
                 raise DBError("No users table")

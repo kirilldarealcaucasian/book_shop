@@ -1,11 +1,11 @@
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth.repositories.auth_repository import AuthRepository
+from auth.repositories import AuthRepository
 from application.schemas import LoginUserS, RegisterUserS, ReturnUserS, AuthenticatedUserS
 from auth import helpers
 from auth.helpers import validate_token, get_token_payload
-from auth.schemas.token_schema import TokenPayload, AuthResponse, Token
+from auth.schemas.token_schema import TokenPayload, AuthResponse
 from application.models import User
 from core.exceptions import DuplicateError, AlreadyExistsError, UnauthorizedError, NotFoundError
 
@@ -46,7 +46,7 @@ class AuthService:
                 email=email,
                 is_login=True
             )
-        except NotFoundError as e:
+        except NotFoundError:
             raise UnauthorizedError("Invalid login / password")
 
         if not helpers.validate_password(

@@ -1,7 +1,7 @@
 import os
 from fastapi import HTTPException, status, File
 from collections import namedtuple
-from core.image_conf.conf import ImageConfig
+from core.image_conf import ImageConfig
 # from application.static import STATIC_FOLDER_ABSOLUTE_PATH
 import datetime
 

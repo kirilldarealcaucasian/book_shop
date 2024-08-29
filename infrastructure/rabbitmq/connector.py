@@ -2,7 +2,7 @@ import pika
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
 from pika.exceptions import AMQPError
 
-from core.config import settings
+# from core.config import settings
 from logger import logger
 from dataclasses import dataclass, field
 
@@ -58,7 +58,7 @@ class RabbitConnector:
         try:
             self.rabbit_con = pika.BlockingConnection(con_params)
             logger.info("Connection has been created, CON: ", self.rabbit_con)
-        except BaseException as e:
+        except BaseException:
             raise logger.error(
                 "unable to create RabbitMQ connection",
                 exc_info=True,
@@ -73,7 +73,7 @@ class RabbitConnector:
         try:
             self.rabbit_chan: BlockingChannel = self.rabbit_con.channel()
             logger.info("Channel has been created, CHAN: ", self.rabbit_chan)
-        except BaseException as e:
+        except BaseException:
             raise logger.error(
                 "unable to create RabbitMQ channel",
                 exc_info=True,
@@ -99,7 +99,7 @@ class RabbitConnector:
                 auto_delete=is_auto_delete
             )
             logger.info(f"Queue {q_name} has been created")
-        except AMQPError as e:
+        except AMQPError:
             raise logger.error(
                 "unable to create queue",
                 exc_info=True,
@@ -111,7 +111,7 @@ class RabbitConnector:
             raise ValueError("No rabbit channel specified")
         try:
             chan.close()
-        except AMQPError as e:
+        except AMQPError:
             logger.error("Failed to close channel", extra=self.creds)
 
     def close_con(self) -> None:
@@ -119,7 +119,7 @@ class RabbitConnector:
             raise ValueError("No rabbit connectionq specified")
         try:
             con.close()
-        except AMQPError as e:
+        except AMQPError:
             logger.error("Failed to close connection", extra=self.creds)
 
 

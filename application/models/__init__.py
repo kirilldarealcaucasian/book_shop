@@ -11,8 +11,7 @@ from application.models.models import (
         ShoppingSession,
         CartItem,
         PaymentDetail,
-        CartItem,
-        BookCategoryAssoc
+        BookCategoryAssoc,
 )
 
 __all__ = (
@@ -21,6 +20,7 @@ __all__ = (
     "Order",
     "Book",
     "BookOrderAssoc",
+    "BookCategoryAssoc",
     "Author",
     "Publisher",
     "Image",
@@ -29,5 +29,4 @@ __all__ = (
     "CartItem",
     "PaymentDetail",
     "CartItem",
-    "BookCategoryAssoc"
 )

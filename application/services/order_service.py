@@ -5,13 +5,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.schemas.domain_model_schemas import OrderS
-from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
 from core.exceptions import EntityDoesNotExist, InvalidModelCredentials, DomainModelConversionError
-from application import Book
 from application.helpers.uuid_helpers import is_valid_uuid
-from application.models import Order, BookOrderAssoc
-from application.repositories.order_repo import CombinedOrderRepositoryInterface
 from application.schemas import (
     ReturnOrderS,
     CreateOrderS,
@@ -32,8 +28,11 @@ from application.schemas.order_schemas import AssocBookS
 from application.services.user_service import UserService
 from application.services.book_service import BookService
 from application.tasks import send_order_summary_email
+from application.models import Order, BookOrderAssoc, Book
 from typing import Annotated, TypeAlias
 from logger import logger
+from application.repositories.order_repo import CombinedOrderRepositoryInterface
+from core.entity_base_service import EntityBaseService
 
 
 OrderId: TypeAlias = str
@@ -63,7 +62,7 @@ class OrderService(EntityBaseService):
 
         try:
             domain_model = OrderS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},
@@ -192,7 +191,7 @@ class OrderService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = OrderS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},

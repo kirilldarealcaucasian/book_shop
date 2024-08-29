@@ -41,7 +41,7 @@ class PublisherService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = PublisherS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},

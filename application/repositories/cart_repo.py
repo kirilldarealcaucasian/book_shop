@@ -10,7 +10,7 @@ from core import OrmEntityRepository
 from core.base_repos import OrmEntityRepoInterface
 from typing import Protocol, Union
 from application.schemas.domain_model_schemas import BookS
-from core.exceptions import NotFoundError, DBError, DeletionError
+from core.exceptions import NotFoundError, DBError
 from logger import logger
 
 
@@ -64,11 +64,11 @@ class CartRepository(OrmEntityRepository):
             cart_session_id: UUID
     ) -> list[CartItem]:
 
-        print("cart_session_id: ", cart_session_id)
         # load Cart with books
-        stmt = select(CartItem).where(ShoppingSession.id == cart_session_id).options(
+        stmt = select(CartItem).join_from(
+            CartItem, ShoppingSession, CartItem.session_id == ShoppingSession.id
+        ).where(ShoppingSession.id == cart_session_id).options(
             selectinload(CartItem.book).selectinload(Book.authors),
-            selectinload(CartItem.shopping_session),
             selectinload(CartItem.book).selectinload(Book.categories),
         )
 
@@ -78,7 +78,7 @@ class CartRepository(OrmEntityRepository):
             raise DBError(str(e))
 
         if not cart:
-            raise NotFoundError()
+            raise NotFoundError(entity="Cart")
 
         return list(cart)
 

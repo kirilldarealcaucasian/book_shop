@@ -1,5 +1,5 @@
 __all__ = (
-    "celery"
+    "celery",
 )
 
 from infrastructure.celery.app import celery

@@ -52,7 +52,7 @@ class AuthorService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = AuthorS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},
@@ -78,7 +78,7 @@ class AuthorService(EntityBaseService):
         dto: dict = data.model_dump(exclude_unset=True)
         try:
             domain_model = AuthorS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             extra = {"dto": dto}
             logger.error("failed to convert to domain model", extra, exc_info=True)
             raise DomainModelConversionError

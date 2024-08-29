@@ -1,16 +1,15 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status, Cookie, Body
+from fastapi import APIRouter, Depends, status, Cookie
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.helpers import CustomSecurity
-from application.services.cart_service import CartService
+from application.services.cart_service import CartService, get_cart_from_cache
 from infrastructure.postgres import db_client
 from application.schemas import ReturnCartS, AddBookToCartS, DeleteBookFromCartS
 from auth.services.permission_service import PermissionService
 from uuid import UUID
-
 
 router = APIRouter(prefix="/v1/cart", tags=["Cart"])
 custom_security = CustomSecurity()
@@ -22,10 +21,11 @@ custom_security = CustomSecurity()
     dependencies=[Depends(PermissionService().get_cart_permission)],
     response_model=ReturnCartS,
 )
+@get_cart_from_cache
 async def get_cart_by_session_id(
         shopping_session_id: Optional[UUID] = Cookie(None),
         service: CartService = Depends(),
-        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.get_cart_by_session_id(
         session=session,
@@ -35,7 +35,9 @@ async def get_cart_by_session_id(
 
 @router.get(
     "/users/{user_id}",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(PermissionService().get_authorized_permission)],
+    response_model=ReturnCartS
 )
 async def get_cart_by_user_id(
         user_id: int,

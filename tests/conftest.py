@@ -5,7 +5,6 @@ import pytest_asyncio
 import asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import insert
-from core.config import settings
 from infrastructure.postgres import db_client
 from application.models import Base, User, Book, BookOrderAssoc, Author, Publisher, Order, Image, Category, \
     BookCategoryAssoc, CartItem, ShoppingSession

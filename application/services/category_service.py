@@ -65,7 +65,7 @@ class CategoryService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = CategoryS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},
@@ -88,7 +88,7 @@ class CategoryService(EntityBaseService):
         dto: dict = dto.model_dump(exclude_unset=True)
         try:
             domain_model = CategoryS(**dto)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"dto": dto},

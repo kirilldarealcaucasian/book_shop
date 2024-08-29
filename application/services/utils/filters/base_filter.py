@@ -39,7 +39,7 @@ class BaseFilter(BaseModel):
                 # case for a nested filter
                 try:
                     stmt = getattr(self, filter_name, None).filter(stmt)
-                except StatementError as e:
+                except StatementError:
                     logger.debug("filter error", exc_info=True)
                     raise FilterError
 
@@ -55,7 +55,7 @@ class BaseFilter(BaseModel):
 
                     model_field = getattr(self.Meta.Model, field_name)
                     stmt = stmt.filter(getattr(model_field, orm_operator)(filter_value))
-                except (CompileError, StatementError) as e:
+                except (CompileError, StatementError):
                     extra = {
                         "field_name": field_name,
                         "query_operator": query_operator,
@@ -82,7 +82,7 @@ class BaseFilter(BaseModel):
                         *[desc(value) for value in directions["desc"]],  # apply order_by for "descending" fields
                         *[value for value in directions["asc"]])
             return stmt
-        except (StatementError) as e:
+        except (StatementError):
             logger.debug("incorrect order_by filter format", exc_info=True)
             raise OrderingFilterError
 
@@ -92,12 +92,12 @@ class BaseFilter(BaseModel):
 
     class FilterRules:
         """mapper from query params to SQLALCHEMY params for filtering"""
-        neq = lambda value: ("__ne__", value)
-        gt = lambda value: ("__gt__", value)
-        gte = lambda value: ("__ge__", value)
-        lt = lambda value: ("__lt__", value)
-        lte = lambda value: ("__le__", value)
-        ilike = lambda value: ("ilike", f"{value}%")
-        eq = lambda value: ("__eq__", value)
+        neq = lambda value: ("__ne__", value) # noqa
+        gt = lambda value: ("__gt__", value) # noqa
+        gte = lambda value: ("__ge__", value) # noqa
+        lt = lambda value: ("__lt__", value) # noqa
+        lte = lambda value: ("__le__", value) # noqa
+        ilike = lambda value: ("ilike", f"{value}%") # noqa
+        eq = lambda value: ("__eq__", value) # noqa
 
 

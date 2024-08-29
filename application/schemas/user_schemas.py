@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from pydantic import Field, EmailStr, model_validator
 from application.schemas.base_schemas import UserBaseS, BaseModel, Id
-from application.schemas.order_schemas import ReturnOrderIdS, ReturnOrderS
+from application.schemas.order_schemas import ReturnOrderS
 from typing_extensions import Self, Literal
 
 

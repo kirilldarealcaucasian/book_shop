@@ -30,7 +30,7 @@ def create_image_folder(concrete_image_folder_name: str) -> str:
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Something went wrong while uploading an image"
+            detail="Something went wrong while uploading an image"
         )
     return image_folder_path
 
@@ -123,10 +123,10 @@ def delete_all_images(concrete_image_folder: int):
         )
 @celery.task
 def save_log():
-    logs_bytes: bytes = parse_logs_journal()
-    rabbit_publisher.send_message_basic_publish(
-        message=logs_bytes,
-        routing_key="logs_q"
-    )
+    logs_bytes: bytes = parse_logs_journal() # noqa
+    # # rabbit_publisher.send_message_basic_publish(
+    #     message=logs_bytes,
+    #     routing_key="logs_q"
+    # )
 
 

@@ -1,6 +1,6 @@
 __all__ = (
-    "email_generator"
-    "parse_logs_journal"
+    "email_generator",
+    "parse_logs_journal",
 )
 
 from application.tasks.helpers import email_generator

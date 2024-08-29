@@ -24,17 +24,17 @@ def perform_logging(func: Callable):
                 logger.info("Entity wasn't found", extra=extra)
                 raise EntityDoesNotExist()
             return res
-        except RepositoryResolutionError as e:
+        except RepositoryResolutionError:
             logger.error("Repository Resolution error", extra=extra, exc_info=True)
             raise ServerError(detail="failed to perform operation due to server error")
 
-        except RelatedEntityDoesNotExist as e:
+        except RelatedEntityDoesNotExist:
             logger.debug("Related entity does not exist", exc_info=True, extra=extra)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error in the provided data (cannot find related entity/entities)"
             )
-        except DBError as e:
+        except DBError:
             logger.error(f"Database {func.__name__} error", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

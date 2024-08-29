@@ -63,7 +63,7 @@ async def test_create_order(
         status_code: int,
 ):
     async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post(url=f"orders/", json=order_data)
+        response = await ac.post(url="orders/", json=order_data)
     assert response.status_code == status_code
 
 

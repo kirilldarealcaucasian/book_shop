@@ -11,13 +11,18 @@ from application.repositories.cart_repo import CombinedCartRepositoryInterface
 from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
 from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS, CreateShoppingSessionS
 from application.services import UserService, ShoppingSessionService, BookService
-from application.services.utils import cart_assembler
+from application.services.cart_service import store_cart_to_cache
+from application.services.cart_service.utils import \
+    (
+    cart_assembler,
+)
+
 from auth.helpers import get_token_payload
 from core import EntityBaseService
 from typing import Annotated, Union
 from application.schemas.domain_model_schemas import CartItemS
 
-from uuid import UUID
+from uuid import UUID as uuid_UUID
 
 from core.config import settings
 from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError, \
@@ -28,17 +33,18 @@ from logger import logger
 class CartService(EntityBaseService):
 
     def __init__(
-        self,
-        cart_repo: Annotated[
-            CombinedCartRepositoryInterface, Depends(CartRepository)
-        ],
-        book_repo: Annotated[CombinedBookRepoInterface, Depends(BookRepository)],
-        shopping_session_repo: Annotated[
+            self,
+            cart_repo: Annotated[
+                CombinedCartRepositoryInterface, Depends(CartRepository)
+            ],
+            book_repo: Annotated[CombinedBookRepoInterface, Depends(BookRepository)],
+            shopping_session_repo: Annotated[
                 CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
-        ],
-        shopping_session_service: ShoppingSessionService = Depends(),
-        user_service: UserService = Depends(),
-        book_service: BookService = Depends()
+            ],
+            shopping_session_service: ShoppingSessionService = Depends(),
+            user_service: UserService = Depends(),
+            book_service: BookService = Depends(),
+
     ):
         self.book_repo = book_repo
         self.shopping_session_repo = shopping_session_repo
@@ -48,15 +54,14 @@ class CartService(EntityBaseService):
         self.user_service = user_service
         self.book_service = book_service
 
+    @store_cart_to_cache(cache_time_seconds=10)
     async def get_cart_by_session_id(
-        self,
-        session: AsyncSession,
-        shopping_session_id: UUID | None
+            self,
+            session: AsyncSession,
+            shopping_session_id: uuid_UUID | None,
     ) -> ReturnCartS:
         """retrieves books in a cart and cart session_id"""
-
         cart: list[CartItem] = []
-
         try:
             cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
                 session=session,
@@ -67,21 +72,21 @@ class CartService(EntityBaseService):
                 logger.info(f"{e.entity} not found", exc_info=True)
                 raise EntityDoesNotExist(e.entity)
             elif type(e) == DBError:
-                logger.error(f"DB error", exc_info=True)
+                logger.error("DB error", exc_info=True)
                 raise ServerError()
 
-        assembled_cart: ReturnCartS = cart_assembler(cart)
+        assembled_cart: ReturnCartS = cart_assembler(cart)  # converts data into ReturnCartS
 
         return assembled_cart
 
+    @store_cart_to_cache(cache_time_seconds=10)
     async def get_cart_by_user_id(
-        self,
-        session: AsyncSession,
-        user_id: int | str
+            self,
+            session: AsyncSession,
+            user_id: int | str
     ) -> ReturnCartS:
         cart: list[CartItem] = []
-
-        user = await self.user_service.get_user_by_id(session=session, id=user_id)
+        _ = await self.user_service.get_user_by_id(session=session, id=user_id)
 
         try:
             cart: list[CartItem] = await self.cart_repo.get_cart_by_user_id(
@@ -95,13 +100,12 @@ class CartService(EntityBaseService):
                 raise ServerError()
 
         assembled_cart: ReturnCartS = cart_assembler(cart)
-
         return assembled_cart
 
     async def create_cart(
-        self,
-        session: AsyncSession,
-        credentials: HTTPAuthorizationCredentials | None
+            self,
+            session: AsyncSession,
+            credentials: HTTPAuthorizationCredentials | None
     ) -> JSONResponse:
         """Cart is associated with a shopping_session_id.
         This method creates a shopping_session and stores it to the cookie"""
@@ -155,9 +159,9 @@ class CartService(EntityBaseService):
         return response
 
     async def delete_cart(
-        self,
-        session: AsyncSession,
-        cart_session_id: UUID,
+            self,
+            session: AsyncSession,
+            cart_session_id: uuid_UUID,
     ) -> None:
         _ = await super().delete(
             repo=self.cart_repo,
@@ -168,7 +172,7 @@ class CartService(EntityBaseService):
     async def add_book_to_cart(
             self,
             session: AsyncSession,
-            session_id: UUID,
+            session_id: uuid_UUID,
             dto: AddBookToCartS,
     ) -> ReturnCartS:
         """Adds a book to the cart / increments amount of ordered books"""
@@ -221,8 +225,8 @@ class CartService(EntityBaseService):
     async def delete_book_from_cart(
             self,
             session: AsyncSession,
-            book_id: UUID,
-            shopping_session_id: UUID
+            book_id: uuid_UUID,
+            shopping_session_id: uuid_UUID
 
     ) -> ReturnCartS:
 
@@ -238,20 +242,20 @@ class CartService(EntityBaseService):
                 book_id=book_id
             )
 
-        except DBError as e:
+        except DBError:
             extra = {"session_id": session, "book_id": book_id}
             logger.error(
-                f"Deletion error: Error while deleting book from cart",
+                "Deletion error: Error while deleting book from cart",
                 extra,
                 exc_info=True
             )
             raise ServerError(
                 detail="Something went wrong. Failed to delete book from cart."
             )
-        except NotFoundError as e:
+        except NotFoundError:
             extra = {"session_id": session, "book_id": book_id}
             logger.debug(
-                f"Book that was tried to bed deleted from the cart wasn't found",
+                "Book that was tried to bed deleted from the cart wasn't found",
                 extra,
                 exc_info=True
             )

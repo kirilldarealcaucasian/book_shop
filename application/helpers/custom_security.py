@@ -12,6 +12,6 @@ class CustomSecurity(HTTPBearer):
         try:
             credentials: HTTPAuthorizationCredentials = await super().__call__(request)
             return credentials
-        except HTTPException as e:
+        except HTTPException:
             logger.debug("failed to retrieve a token from request", exc_info=True)
             return None

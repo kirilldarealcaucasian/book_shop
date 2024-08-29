@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, UploadFile
 from pydantic import ValidationError, PydanticSchemaGenerationError
@@ -39,12 +40,13 @@ class ImageService(EntityBaseService):
     async def upload_image(
         self,
         session: AsyncSession,
-        book_id: str | int,
+        book_id: UUID,
         image: UploadFile,
     ):
-        book: list[ReturnBookS] | None = await self.book_service\
+        book: ReturnBookS | None = await self.book_service\
             .get_book_by_id(
-            session=session, id=book_id
+            session=session,
+            id=book_id
         )
 
         if not book:
@@ -57,7 +59,7 @@ class ImageService(EntityBaseService):
 
         try:
             domain_model = ImageS(**image_data)
-        except (ValidationError, PydanticSchemaGenerationError) as e:
+        except (ValidationError, PydanticSchemaGenerationError):
             logger.error(
                 "Failed to generate domain model",
                 extra={"image_data": image_data},

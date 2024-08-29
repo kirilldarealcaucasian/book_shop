@@ -1,5 +1,5 @@
 __all__ = (
-    "logger"
+    "logger",
 )
 
 from logger.logg import logger

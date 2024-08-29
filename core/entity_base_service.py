@@ -2,8 +2,9 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.base_repos import OrmEntityRepoInterface
 from typing import TypeVar, Generic
+
+from core.base_repos import OrmEntityRepoInterface
 from core.exceptions import RepositoryResolutionError, \
     DuplicateError, AlreadyExistsError, ServerError
 from application.schemas import (
@@ -46,9 +47,9 @@ from application.schemas.domain_model_schemas import \
     ShoppingSessionS,
     ImageS, UserS
 )
-from core.utils import perform_logging
-
 from logger import logger
+from core.utils import perform_logging
+# from core.base_repos import OrmEntityRepoInterface
 
 CreateDataT = TypeVar(
     "CreateDataT",
@@ -102,7 +103,10 @@ class RepositoryResolver:
     def __init__(self, repository_pool: dict):
         self.repo_pool: dict = repository_pool
 
-    def __call__(self, desired_repo: OrmEntityRepoInterface) -> RepoInterface:
+    def __call__(
+            self,
+            desired_repo: OrmEntityRepoInterface,
+    ) -> RepoInterface:
         for repo in self.repo_pool.values():
             if repo == desired_repo:
                 return repo
@@ -154,11 +158,11 @@ class EntityBaseService(
             instance_id: ArgDataT,
             domain_model: DomainModelDataT
     ) -> ReturnDataT:
-            return await self.repository_resolver(repo).update(
-                instance_id=instance_id,
-                domain_model=domain_model,
-                session=session,
-            )
+        return await self.repository_resolver(repo).update(
+            instance_id=instance_id,
+            domain_model=domain_model,
+            session=session,
+        )
 
     @perform_logging
     async def get_all(
@@ -194,7 +198,6 @@ class EntityBaseService(
     async def commit(self, session: AsyncSession):
         try:
             await session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             logger.info("failed to commit transaction", exc_info=True)
             raise ServerError()
-
