@@ -87,7 +87,7 @@ DomainModelDataT = TypeVar(
     UserS, AuthorS, BookS,
     BookOrderAssocS, CartItemS, CategoryS,
     OrderS, PaymentDetailS, PublisherS,
-    ShoppingSessionS, ImageS,
+    ShoppingSessionS, ImageS
 )
 
 RepoInterface = TypeVar("RepoInterface")

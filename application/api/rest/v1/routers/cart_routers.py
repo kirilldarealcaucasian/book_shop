@@ -36,7 +36,7 @@ async def get_cart_by_session_id(
 @router.get(
     "/users/{user_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(PermissionService().get_authorized_permission)],
+    dependencies=[Depends(PermissionService().get_cart_permission_for_user)],
     response_model=ReturnCartS
 )
 async def get_cart_by_user_id(

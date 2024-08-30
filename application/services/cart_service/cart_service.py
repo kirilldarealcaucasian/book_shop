@@ -1,3 +1,4 @@
+from aioredis import Redis, RedisError
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
@@ -5,16 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application import Book
 from application.models import CartItem
-from application.repositories import CartRepository, ShoppingSessionRepository
-from application.repositories.book_repo import CombinedBookRepoInterface, BookRepository
+from application.repositories import CartRepository
 from application.repositories.cart_repo import CombinedCartRepositoryInterface
-from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
 from application.schemas import AddBookToCartS, ReturnCartS, ShoppingSessionIdS, CreateShoppingSessionS
 from application.services import UserService, ShoppingSessionService, BookService
-from application.services.cart_service import store_cart_to_cache
+from application.services.cart_service import store_cart_to_cache, serialize_and_store_cart_books
 from application.services.cart_service.utils import \
     (
-    cart_assembler,
+    cart_assembler
 )
 
 from auth.helpers import get_token_payload
@@ -27,6 +26,7 @@ from uuid import UUID as uuid_UUID
 from core.config import settings
 from core.exceptions import NotFoundError, EntityDoesNotExist, DBError, ServerError, AlreadyExistsError, \
     OutOfStockQuantity
+from infrastructure.redis import redis_client
 from logger import logger
 
 
@@ -37,24 +37,21 @@ class CartService(EntityBaseService):
             cart_repo: Annotated[
                 CombinedCartRepositoryInterface, Depends(CartRepository)
             ],
-            book_repo: Annotated[CombinedBookRepoInterface, Depends(BookRepository)],
-            shopping_session_repo: Annotated[
-                CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
-            ],
             shopping_session_service: ShoppingSessionService = Depends(),
             user_service: UserService = Depends(),
             book_service: BookService = Depends(),
 
     ):
-        self.book_repo = book_repo
-        self.shopping_session_repo = shopping_session_repo
         self.cart_repo: CombinedCartRepositoryInterface = cart_repo
-        super().__init__(cart_repo=cart_repo)
+        super().__init__(
+            cart_repo=cart_repo,
+        )
         self.shopping_session_service = shopping_session_service
         self.user_service = user_service
         self.book_service = book_service
+        self.redis_con: Redis = redis_client.connection
 
-    @store_cart_to_cache(cache_time_seconds=10)
+    @store_cart_to_cache(cache_time_seconds=35)
     async def get_cart_by_session_id(
             self,
             session: AsyncSession,
@@ -79,7 +76,7 @@ class CartService(EntityBaseService):
 
         return assembled_cart
 
-    @store_cart_to_cache(cache_time_seconds=10)
+    @store_cart_to_cache(cache_time_seconds=35)
     async def get_cart_by_user_id(
             self,
             session: AsyncSession,
@@ -189,7 +186,7 @@ class CartService(EntityBaseService):
         )
 
         for cart_item in cart:
-            """check if book already in teh cart, if it is, then increment amount"""
+            """check if book already in the cart, if it is, then increment amount"""
             book: Book = cart_item.book
             if str(cart_item.book_id) == str(domain_model.book_id):
 
@@ -209,18 +206,33 @@ class CartService(EntityBaseService):
                         f"Only {book.number_in_stock} books left in stock"
                     )
 
-        await super().create(
+        _ = await super().create(
             session=session,
             repo=self.cart_repo,
             domain_model=domain_model
-        )
+        )  # add book to the cart
 
-        cart: ReturnCartS = await self.get_cart_by_session_id(
+        updated_cart: ReturnCartS = await self.get_cart_by_session_id(
             session=session,
             shopping_session_id=session_id
         )
 
-        return cart
+        if self.redis_con is not None:
+            for cart_book in updated_cart.books:
+                if str(cart_book.book_id) == str(domain_model.book_id):
+                    await serialize_and_store_cart_books(
+                        book=cart_book,
+                        redis_con=self.redis_con
+                    )  # store book to redis cache
+
+            cart_uq_key = f"cart:{session_id}"  # identifies of a set in cache
+
+            await self.redis_con.sadd(
+                cart_uq_key,
+                domain_model.book_id
+            )  # update set of books in cache
+        logger.error("Failed to update cart in cache")
+        return updated_cart
 
     async def delete_book_from_cart(
             self,
@@ -255,7 +267,7 @@ class CartService(EntityBaseService):
         except NotFoundError:
             extra = {"session_id": session, "book_id": book_id}
             logger.debug(
-                "Book that was tried to bed deleted from the cart wasn't found",
+                "Book that was tried to be deleted from the cart wasn't found",
                 extra,
                 exc_info=True
             )
@@ -266,4 +278,25 @@ class CartService(EntityBaseService):
             shopping_session_id=shopping_session_id
         )
 
+        uq_book_name = f"book:{book_id}"
+        if self.redis_con:
+            try:
+                await self.redis_con.srem(
+                    uq_book_name,
+                    str(book_id)
+                )  # delete book from cache
+            except RedisError:
+                extra = {
+                    "uq_book_name": uq_book_name,
+                    "books_id": book_id
+                }
+                logger.error(
+                    "Redis error. Something went wrong while deleting book from the cache",
+                    extra=extra,
+                    exc_info=True
+                )
+        logger.error("Failed to delete book from cart in cache")
         return cart
+
+
+

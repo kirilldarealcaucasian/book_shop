@@ -20,7 +20,7 @@ class UpdateOrderS(OrderBaseS):
 class UpdatePartiallyOrderS(BaseModel):
     order_status: str | None
     order_date: datetime | None = None
-    total_sum: float | None = None
+    total_sum: float | None = Field(default=0, ge=0)
 
 
 class OrderSummaryS(BaseModel):
@@ -31,11 +31,11 @@ class OrderSummaryS(BaseModel):
 
 class AssocBookS(BaseModel):
     book_id: UUID
-    book_title: str
+    book_title: str = Field(min_length=2)
     authors: list[str]
     categories: list[Category]
-    rating: int
-    discount: int
+    rating: int = Field(ge=0)
+    discount: int = Field(ge=0)
     count_ordered: int
     price_per_unit: float
 
@@ -46,7 +46,7 @@ class ReturnOrderS(BaseModel):
 
 
 class ShortenedReturnOrderS(BaseModel):
-    owner_name: str
+    owner_name: str = Field(min_length=2)
     owner_email: EmailStr
     order_id: int
     order_status: str
@@ -58,5 +58,6 @@ class ReturnOrderIdS(ReturnOrderS):
     order_id: int
 
 
-class QuantityS(BaseModel):
-    quantity: int = Field(ge=0)
+class AddBookToOrderS(BaseModel):
+    book_id: UUID
+    count_ordered: int = Field(ge=1)

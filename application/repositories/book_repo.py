@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import UUID4
 from sqlalchemy import select
 from sqlalchemy.exc import CompileError
@@ -94,7 +96,7 @@ class BookRepository(OrmEntityRepository):
     async def get_by_id(
             self,
             session: AsyncSession,
-            id: UUID4
+            id: UUID
     ) -> Book:
         stmt = select(self.model).options(
             selectinload(Book.categories),

@@ -56,7 +56,7 @@ class BookService(EntityBaseService):
             [author.first_name, author.last_name]) for author in book.authors]
 
         return ReturnBookS(
-            id=book.id,
+            id=str(book.id),
             name=book.name,
             description=book.description,
             price_per_unit=book.price_per_unit,
@@ -103,7 +103,7 @@ class BookService(EntityBaseService):
     async def create_book(
             self, session: AsyncSession, dto: CreateBookS
     ) -> BookIdS:
-        dto: dict = dto.model_dump(exclude_unset=True)
+        dto: dict = dto.model_dump(exclude_unset=True, exclude_none=True)
         try:
             domain_model = BookS(**dto)
         except (ValidationError, PydanticSchemaGenerationError):

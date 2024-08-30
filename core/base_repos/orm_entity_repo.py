@@ -3,7 +3,6 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from logger import logger
 from core.exceptions.storage_exceptions import (
     DuplicateError,
     DBError, NotFoundError
@@ -41,6 +40,8 @@ class OrmEntityRepository:
             session: AsyncSession,
             domain_model: DomainModelDataT,
     ) -> Id:
+        from logger import logger
+
         to_add = None
         try:
             to_add = self.model(**domain_model.model_dump(exclude_unset=True))
@@ -93,10 +94,10 @@ class OrmEntityRepository:
     async def update(
             self,
             domain_model: DomainModelDataT,
-            instance_id: str | int,
+            instance_id: str | int | UUID,
             session: AsyncSession,
     ) -> model:
-
+        print("DOMAIN MODEL: ", domain_model)
         res = await self.get_all(session=session, id=instance_id)  # check existence of the entity
 
         if not res:
@@ -104,6 +105,7 @@ class OrmEntityRepository:
 
         try:
             to_update: dict = domain_model.model_dump(exclude_unset=True, exclude_none=True)
+            print("TO UPDATE: ", to_update)
         except Exception as e:
             raise DBError(
                 traceback=str(e)
@@ -145,6 +147,7 @@ class OrmEntityRepository:
             )
 
     async def commit(self, session: AsyncSession):
+        from logger import logger
         try:
             await session.commit()
         except SQLAlchemyError:

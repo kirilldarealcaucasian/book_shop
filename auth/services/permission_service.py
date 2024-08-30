@@ -40,7 +40,7 @@ class PermissionService(AuthRepository):
             session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
     ) -> int:
         payload: dict = get_token_payload(credentials=credentials)
-        user_id = getattr(payload, "user_id")
+        user_id = payload["user_id"]
 
         if not user_id:
             raise UnauthorizedError(detail="You are not allowed to perform this operation")
@@ -80,6 +80,24 @@ class PermissionService(AuthRepository):
         if shopping_session:
             return shopping_session_id
 
+    async def get_cart_permission_for_user(
+            self,
+            user_id: int,
+            credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+            user_service: UserService = Depends(),
+            session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
+    ):
+        payload: dict = get_token_payload(credentials=credentials)
+        token_user_id = payload["user_id"]
+        if user_id != token_user_id:
+            raise UnauthorizedError(
+                detail="You are not allowed to access this cart"
+            )
+
+        _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user,  exception
+        # will be raised by user_service
+
+
     async def get_authorized_permission(
             self,
             credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
@@ -87,7 +105,6 @@ class PermissionService(AuthRepository):
             session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
     ):
         "Checks if the user is logged in"
-
         payload: dict = get_token_payload(credentials=credentials)
         user_id = payload["user_id"]
         _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user,  exception

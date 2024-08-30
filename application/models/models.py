@@ -26,7 +26,6 @@ from typing_extensions import Literal
 from application.helpers import generate_uuid
 from application.models.mixins import FirstLastNameValidationMixin, TimestampMixin
 
-
 __all__ = (
     "Base",
     "User",
@@ -181,7 +180,10 @@ class User(Base, FirstLastNameValidationMixin, TimestampMixin):
 class PaymentDetail(Base, TimestampMixin):
     __tablename__ = "payment_details"
 
-    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), unique=True)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True,
+                                     default=generate_uuid,
+                                     unique=True
+                                     )
     status: Mapped[str] = mapped_column(server_default="pending", default="pending")
     payment_provider: Mapped[str | None]
     amount: Mapped[float] = mapped_column(default=0.0, server_default="0.0")
@@ -203,8 +205,8 @@ class Order(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     order_status: Mapped[str | None] = mapped_column(default="pending", server_default="pending")
     order_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    total_sum: Mapped[float | None] = mapped_column(Double)
-    # payment_id: Mapped[str | None] = mapped_column(ForeignKey("payment_details.id", ondelete="RESTRICT"))
+    total_sum: Mapped[float] = mapped_column(Double, default=0)
+    payment_id: Mapped[str | None] = mapped_column(ForeignKey("payment_details.id", ondelete="RESTRICT"))
 
     # relationships
     order_details: Mapped[list["BookOrderAssoc"]] = relationship(
@@ -225,7 +227,7 @@ class Order(Base):
         order_status={self.order_status},
         order_date={self.order_date},
         total_sum={self.total_sum},
-        total_sum={self.total_sum})"""
+        )"""
 
 
 class BookOrderAssoc(Base):

@@ -1,10 +1,12 @@
 from datetime import timedelta
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.postgres import db_client
-from application.schemas import CreateOrderS, ReturnOrderS, ShortenedReturnOrderS, QuantityS, \
-    UpdatePartiallyOrderS
+from application.schemas import CreateOrderS, ReturnOrderS, ShortenedReturnOrderS,\
+    UpdatePartiallyOrderS, AddBookToOrderS
 from application.schemas.filters import PaginationS
 from application.services import OrderService
 from core.utils.cache import cachify
@@ -25,9 +27,12 @@ async def get_all_orders(
 @router.get("/{order_id}",
             status_code=status.HTTP_200_OK,
             response_model=ReturnOrderS,
-            dependencies=[Depends(PermissionService().get_order_permission)]
+            # dependencies=[Depends(PermissionService().get_order_permission)]
             )
-@cachify(ReturnOrderS, cache_time=timedelta(seconds=10))
+@cachify(
+    ReturnOrderS,
+    cache_time=timedelta(seconds=10),
+)
 async def get_order_by_id(
         order_id: int,
         service: OrderService = Depends(),
@@ -36,13 +41,17 @@ async def get_order_by_id(
     return await service.get_order_by_id(session=session, order_id=order_id)
 
 
-@router.get("/users/{user_id}", status_code=status.HTTP_200_OK)
+@router.get(
+    "/users/{user_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=list[ReturnOrderS]
+)
 async def get_order_by_user_id(
         user_id: int,
         service: OrderService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
-    return await service.get_user_orders(session=session, user_id=user_id)
+    return await service.get_orders_by_user_id(session=session, user_id=user_id)
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
@@ -69,32 +78,34 @@ async def delete_order(
 
 
 @router.post(
-    '/{order_id}/books/{book_id}',
-    dependencies=[Depends(PermissionService().get_order_permission)],
+    '/items',
+    # dependencies=[Depends(PermissionService().get_order_permission)],
     status_code=status.HTTP_200_OK,
 )
 async def add_book_to_order(
         order_id: int,
-        book_id: str | int,
-        quantity: QuantityS,
+        data: AddBookToOrderS,
         service: OrderService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
 ):
     return await service.add_book_to_order(
-        session=session,
         order_id=order_id,
-        book_id=book_id,
-        quantity=quantity.quantity
+        session=session,
+        dto=data
     )
 
 
-@router.delete("/{order_id}/books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{order_id}/books/{book_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ReturnOrderS
+)
 async def delete_book_from_order(
         order_id: int,
-        book_id: str,
+        book_id: UUID,
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         service: OrderService = Depends()
-) -> None:
+):
     return await service.delete_book_from_order(
         session=session,
         book_id=book_id,
@@ -102,9 +113,12 @@ async def delete_book_from_order(
     )
 
 
-@router.patch("/{order_id}", dependencies=[Depends(PermissionService().get_order_permission)])
+@router.patch(
+    "/{order_id}",
+    # dependencies=[Depends(PermissionService().get_order_permission)]
+)
 async def update_order(
-        order_id: str,
+        order_id: int,
         update_data: UpdatePartiallyOrderS,
         service: OrderService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)

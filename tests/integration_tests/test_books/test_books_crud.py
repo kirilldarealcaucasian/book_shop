@@ -112,7 +112,7 @@ async def test_create_book(
         rating: float,
         discount: int,
         status_code: int,
-        ac
+        ac: AsyncClient
 ):
     data = {
         "isbn": isbn,
@@ -213,7 +213,19 @@ async def test_update_book(book_id: int | str, update_data: UpdateBookS, status_
                     "price_per_unit": 5,
                     "number_in_stock": 0,
                     "rating": 0,
-                    "discount": 0
+                    "discount": -5
+                },
+                422
+        ),
+(
+                "ecd38a11-3bbd-4bba-b596-3e2d554796a7",
+                {
+                    "name": "string",
+                    "description": "string",
+                    "price_per_unit": 5,
+                    "number_in_stock": 0,
+                    "rating": -4,
+                    "discount": 4
                 },
                 422
         ),

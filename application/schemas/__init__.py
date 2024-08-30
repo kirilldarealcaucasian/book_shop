@@ -39,14 +39,15 @@ __all__ = (
     "BookSummaryS",
     "OrderSummaryS",
 
-    "QuantityS",
+
     "BookFilterS",
 
     "ShoppingSessionIdS",
     "CartSessionId",
     "AddBookToCartS",
     "BookIdS",
-    "DeleteBookFromCartS"
+    "DeleteBookFromCartS",
+    "AddBookToOrderS"
 )
 
 from application.schemas.book_schemas import (
@@ -65,7 +66,7 @@ from application.schemas.order_schemas import (
     ReturnOrderS,
     ReturnOrderIdS,
     ShortenedReturnOrderS,
-    QuantityS,
+    AddBookToOrderS,
     UpdatePartiallyOrderS
 )
 

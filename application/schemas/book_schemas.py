@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class BookIdS(BaseModel):
-    id: UUID
+    id: str | UUID
 
 
 class ReturnBookS(BookIdS, BookBaseS):
@@ -29,13 +29,13 @@ class UpdateBookS(BookBaseS):
 
 
 class UpdatePartiallyBookS(BaseModel):
-    name: str | None = Field(default=None, min_length=1)
+    name: str | None = Field(default=None, min_length=2)
     isbn: str | None = None
     description: str | None = None
     price_per_unit: float | None = Field(default=None, ge=0)
     number_in_stock: int | None = Field(default=None, ge=0)
-    rating: float | None = None
-    discount: int | None = None
+    rating: float | None = Field(default=None, ge=0)
+    discount: int | None = Field(default=None, ge=0)
 
 
 class BookSummaryS(BaseModel):

@@ -66,16 +66,21 @@ async def test_create_cart_with_auth(
     "user_id,status_code",
     [
         (3, 200),
-        (2, 404),  # user without cart
-        (100, 404),  # user that doesn't exist
+        (2, 401),  # user without cart
+        (100, 401),  # user that doesn't exist
     ]
 )
 async def test_get_cart_by_user_id(
         ac: AsyncClient,
         user_id: int,
-        status_code: int
+        status_code: int,
+        get_admin_header: str
+
 ):
-    response = await ac.get(url=f"v1/cart/users/{user_id}")
+    response = await ac.get(
+        url=f"v1/cart/users/{user_id}",
+        headers={"Authorization": get_admin_header}
+    )
     assert response.status_code == status_code
 
 

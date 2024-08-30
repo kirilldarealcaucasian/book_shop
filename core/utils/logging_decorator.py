@@ -24,7 +24,7 @@ def perform_logging(func: Callable):
                 logger.info("Entity wasn't found", extra=extra)
                 raise EntityDoesNotExist()
             return res
-        except RepositoryResolutionError:
+        except (TypeError, RepositoryResolutionError):
             logger.error("Repository Resolution error", extra=extra, exc_info=True)
             raise ServerError(detail="failed to perform operation due to server error")
 
