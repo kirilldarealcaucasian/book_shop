@@ -5,16 +5,21 @@ from fastapi import Depends
 from pydantic import ValidationError, PydanticSchemaGenerationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application import Book
+from application.models import Book, User
 from application.repositories.book_order_assoc_repo import BookOrderAssocRepository
 from application.repositories.book_repo import CombinedBookRepoInterface
-from application.schemas.domain_model_schemas import OrderS, BookOrderAssocS
+from application.repositories.cart_repo import CombinedCartRepositoryInterface, CartRepository
+from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
+from application.schemas.domain_model_schemas import OrderS, BookOrderAssocS, CartItemS
+from application.schemas.payment_schemas import CreateReceiptS, ReturnPaymentS
 from application.services.order_service.utils import order_assembler
+from application.services.payment_service import PaymentServiceInterface
+# from application.services.payment_service import PaymentServiceInterface, YooCassaPaymentService
 from core.base_repos import OrmEntityRepoInterface
 from core.exceptions import (
     EntityDoesNotExist,
     DomainModelConversionError, NotFoundError,
-    DBError, ServerError
+    DBError, ServerError, PaymentObjectCreationError, PaymentRetrieveStatusError
 )
 from application.schemas import (
     ReturnOrderS,
@@ -24,23 +29,33 @@ from application.schemas import (
     ReturnUserS,
     ShortenedReturnOrderS,
     ReturnUserWithOrdersS,
-    UpdatePartiallyOrderS
+    UpdatePartiallyOrderS,
+    CreatePaymentS,
 )
 
 from application.repositories import (
     OrderRepository,
     BookRepository,
+    ShoppingSessionRepository
 )
+
 from application.schemas.filters import PaginationS
-from application.schemas.order_schemas import AssocBookS, AddBookToOrderS
-from application.services.user_service import UserService
-from application.services.book_service import BookService
+from application.schemas.order_schemas import AssocBookS, AddBookToOrderS, OrderItemS
+# from application.services.user_service import UserService
+# from application.services.book_service import BookService
 from application.tasks import send_order_summary_email
-from application.models import Order, BookOrderAssoc
+from application.models import Order, BookOrderAssoc, ShoppingSession, CartItem
 from typing import Annotated, TypeAlias, Union
+
 from logger import logger
 from application.repositories.order_repo import CombinedOrderRepositoryInterface
 from core.entity_base_service import EntityBaseService
+from application.services import (
+    BookService, UserService,
+    YooCassaPaymentService,
+    CartService,
+)
+from application.tasks.tasks1 import process_payment
 
 
 OrderId: TypeAlias = str
@@ -57,19 +72,31 @@ class OrderService(EntityBaseService):
         book_order_assoc_repo: Annotated[
             OrmEntityRepoInterface, Depends(BookOrderAssocRepository)
         ],
+        shopping_session_repo: Annotated[
+            CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
+        ],
+        cart_repo: Annotated[
+            CombinedCartRepositoryInterface, Depends(CartRepository)
+        ],
+        payment_service: Annotated[
+            PaymentServiceInterface, Depends(YooCassaPaymentService)
+        ],
         book_service: BookService = Depends(),
         user_service: UserService = Depends(),
     ):
         super().__init__(
+            shopping_session_repo=shopping_session_repo,
             order_repo=order_repo,
-            book_repo=book_repo,
             book_order_assoc_repo=book_order_assoc_repo
         )
+        self.payment_service = payment_service
         self.order_repo = order_repo
         self.book_repo = book_repo
         self.user_service = user_service
         self.book_service = book_service
+        self.cart_repo = cart_repo
         self.book_order_assoc_repo = book_order_assoc_repo
+        self.shopping_session_repo = shopping_session_repo
 
     async def create_order(
         self, session: AsyncSession, dto: CreateOrderS
@@ -304,7 +331,6 @@ class OrderService(EntityBaseService):
             )
             raise ServerError()
 
-
     async def make_order(
         self,
         session: AsyncSession,
@@ -339,3 +365,86 @@ class OrderService(EntityBaseService):
         send_order_summary_email.delay(
             order_data=data,
         )
+
+    async def perform_order(
+            self,
+            session: AsyncSession,
+            shopping_session_id: UUID
+    ):
+        shopping_session: ShoppingSession = await self.shopping_session_repo.get_by_id(
+            session=session,
+            id=shopping_session_id
+        )
+
+        cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
+            session=session,
+            cart_session_id=shopping_session_id
+        )
+
+        if shopping_session is None:
+            logger.info(
+                "ShoppingSession does not exist",
+                extra={"shopping_session_id", shopping_session_id}
+            )
+            raise EntityDoesNotExist(
+                entity="Cart"
+            )
+
+        cart_owner: User = shopping_session.user
+        cart_owner_full_name = " ".join([cart_owner.first_name, cart_owner.last_name])
+
+        order_items: list[OrderItemS] = []
+
+        for item in cart:
+            book: Book = item.book
+            order_items.append(
+                OrderItemS(
+                    book_name=book.name,
+                    quantity=item.quantity,
+                    price=book.price_with_discount
+                )
+            )
+
+        receipt = CreateReceiptS(
+            customer_full_name=cart_owner_full_name,
+            customer_email=cart_owner.email,
+            items=order_items
+        )
+
+        order_item_names = ", ".join([order_item.book_name for order_item in order_items])
+        description = f"Вы заказываете {order_item_names}"
+
+        payment_data = CreatePaymentS(
+            total_amount=shopping_session.total,
+            currency="RUB",
+            description=description,
+            receipt=receipt
+        )
+        try:
+            payment_creds: ReturnPaymentS = self.payment_service.create_payment(
+                payment_data=payment_data
+            )
+            print("CONFIRMATION_URL: ", payment_creds.confirmation_url)
+        except PaymentObjectCreationError:
+            raise ServerError("Something went wrong during payment process")
+
+        # try:
+        #     payment_status: bool = await self.payment_service.check_payment_status(
+        #         payment_id=payment_creds.payment_id
+        #     )
+        # except PaymentRetrieveStatusError:
+        #     raise ServerError("Something went wrong during payment process")
+
+        print("BEFORE SENDING CELERY TASK")
+        process_payment.delay(
+            # session=session,
+            # shopping_session_id=shopping_session_id,
+            payment_id=payment_creds.payment_id
+        )
+        return payment_creds.confirmation_url
+
+        # if payment_status:
+        #     print("PAYMENT STATUS IS OOOOOOOK")
+        #
+        # if not payment_status:
+        #     print("PAYMENT STATUS IS NOT OOOOOOKAY")

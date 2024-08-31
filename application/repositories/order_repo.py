@@ -18,6 +18,7 @@ from core.exceptions import NotFoundError, DBError
 
 __all__ = (
     "CombinedOrderRepositoryInterface",
+    "OrderRepository",
 )
 
 
@@ -153,12 +154,26 @@ class OrderRepository(OrmEntityRepository):
         except SQLAlchemyError as e:
             raise DBError(traceback=str(e))
 
-
     async def get_order_with_order_details(
             self,
             session: AsyncSession,
             order_id: int,
     ) -> Order:
-        stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.order_details))
-        order: Order = (await session.scalars(stmt)).one_or_none()
-        return order
+        stmt = select(Order, BookOrderAssoc).join_from(
+            Order, BookOrderAssoc, Order.id == BookOrderAssoc.order_id
+        ).where(
+            and_(
+                Order.id == order_id,
+                order_id == BookOrderAssoc.order_id
+            ),
+        ).options(
+            selectinload(BookOrderAssoc.order),
+            selectinload(BookOrderAssoc.book)
+        )
+        try:
+            order: Order = (await session.scalars(stmt)).one_or_none()
+            return order
+        except SQLAlchemyError as e:
+            raise DBError(traceback=str(e))
+
+

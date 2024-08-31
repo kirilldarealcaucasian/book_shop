@@ -11,6 +11,7 @@ __all__ = (
     "ReturnPublisherS",
     "ReturnCategoryS",
     "ReturnShoppingSessionS",
+    "ReturnPaymentS",
 
     "UpdateBookS",
     "UpdatePartiallyBookS",
@@ -32,6 +33,7 @@ __all__ = (
     "CreatePublisherS",
     "CreateCategoryS",
     "CreateShoppingSessionS",
+    "CreatePaymentS",
 
     "AuthenticatedUserS",
     "RegisterUserS",
@@ -47,7 +49,8 @@ __all__ = (
     "AddBookToCartS",
     "BookIdS",
     "DeleteBookFromCartS",
-    "AddBookToOrderS"
+    "AddBookToOrderS",
+    "OrderItemS",
 )
 
 from application.schemas.book_schemas import (
@@ -67,7 +70,8 @@ from application.schemas.order_schemas import (
     ReturnOrderIdS,
     ShortenedReturnOrderS,
     AddBookToOrderS,
-    UpdatePartiallyOrderS
+    UpdatePartiallyOrderS,
+    OrderItemS
 )
 
 from application.schemas.user_schemas import (
@@ -116,3 +120,5 @@ from application.schemas.cart_schemas import (
 )
 
 from application.schemas.filters import BookFilterS
+from application.schemas.payment_schemas import CreatePaymentS, ReturnPaymentS
+

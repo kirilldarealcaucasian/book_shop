@@ -1,14 +1,17 @@
+import logging
+
 from celery import Celery
 # from celery.schedules import crontab
-
-from core.config import settings
+# from core.config import settings
 
 
 celery = Celery(
     "tasks1",
-    broker=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+    # broker=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+    broker=f"redis://127.0.0.1:6379",
     include=["application.tasks.tasks1"],
 )
+
 
 # celery.conf.beat_schedule = {
 #     'save-logs-every-minute': {

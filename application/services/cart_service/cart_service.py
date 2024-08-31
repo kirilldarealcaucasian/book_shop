@@ -51,7 +51,7 @@ class CartService(EntityBaseService):
         self.book_service = book_service
         self.redis_con: Redis = redis_client.connection
 
-    @store_cart_to_cache(cache_time_seconds=35)
+    @store_cart_to_cache(cache_time_seconds=350)
     async def get_cart_by_session_id(
             self,
             session: AsyncSession,
@@ -76,7 +76,7 @@ class CartService(EntityBaseService):
 
         return assembled_cart
 
-    @store_cart_to_cache(cache_time_seconds=35)
+    @store_cart_to_cache(cache_time_seconds=350)
     async def get_cart_by_user_id(
             self,
             session: AsyncSession,

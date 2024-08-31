@@ -1,9 +1,13 @@
+import asyncio
 import io
 import os
 import shutil
 
 from PIL import Image
 from fastapi import HTTPException, status
+
+from application.services.payment_service import YooCassaPaymentService
+from core.exceptions import PaymentRetrieveStatusError, ServerError
 from core.image_conf import ImageConfig
 from email.message import EmailMessage
 from infrastructure.celery import celery
@@ -13,7 +17,9 @@ from pathlib import Path
 from logger import logger
 from infrastructure.mail import MailClient
 # from infrastructure.rabbitmq import rabbit_publisher
+from celery.utils.log import get_task_logger
 
+task_logger = get_task_logger(__name__)
 
 def create_image_folder(concrete_image_folder_name: str) -> str:
     image_folder_path: str = os.path.join(
@@ -121,6 +127,8 @@ def delete_all_images(concrete_image_folder: int):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Something went wrong while deleting images"
         )
+
+
 @celery.task
 def save_log():
     logs_bytes: bytes = parse_logs_journal() # noqa
@@ -128,5 +136,28 @@ def save_log():
     #     message=logs_bytes,
     #     routing_key="logs_q"
     # )
+
+
+@celery.task
+def process_payment(
+            # session: AsyncSession,
+            # shopping_session_id: UUID,
+            payment_id: str
+    ):
+        print("HEREEEEE")
+        task_logger.info("IN PROCESS PAYMENT!!!!!")
+        payment_service = YooCassaPaymentService()
+        try:
+            payment_status = payment_service.check_payment_status(
+                    payment_id=payment_id
+                )
+        except PaymentRetrieveStatusError:
+            raise ServerError("Something went wrong during payment process")
+
+        if payment_status:
+            task_logger.info("PAYMENT STATUS IS OOOOOOOK")
+
+        if not payment_status:
+            task_logger.info("PAYMENT STATUS IS NOT OOOOOOKAY")
 
 

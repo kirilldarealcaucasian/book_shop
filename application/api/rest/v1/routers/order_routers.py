@@ -1,7 +1,7 @@
 from datetime import timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.postgres import db_client
@@ -15,13 +15,31 @@ from auth.services.permission_service import PermissionService
 router = APIRouter(prefix="/v1/orders", tags=["Orders CRUD"])
 
 
-@router.get("", status_code=status.HTTP_200_OK, response_model=list[ShortenedReturnOrderS] | None)
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    response_model=list[ShortenedReturnOrderS])
 async def get_all_orders(
         service: OrderService = Depends(),
         session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
         pagination: PaginationS = Depends()
 ):
     return await service.get_all_orders(session=session, pagination=pagination)
+
+
+@router.get(
+    "/checkout",
+    dependencies=[Depends(PermissionService().get_cart_permission)]
+)
+async def perform_order(
+        shopping_session_id: UUID = Cookie(None),
+        service: OrderService = Depends(),
+        session: AsyncSession = Depends(db_client.get_scoped_session_dependency),
+):
+    return await service.perform_order(
+        session=session,
+        shopping_session_id=shopping_session_id
+    )
 
 
 @router.get("/{order_id}",
@@ -130,12 +148,14 @@ async def update_order(
     )
 
 
-@router.get("/{order_id}/summary",
-            status_code=status.HTTP_200_OK,
-            dependencies=[Depends(PermissionService().get_order_permission)])
-async def make_order(
-        order_id: int,
-        service: OrderService = Depends(),
-        session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
-):
-    return await service.make_order(session=session, order_id=order_id)
+# @router.get("/{order_id}/summary",
+#             status_code=status.HTTP_200_OK,
+#             dependencies=[Depends(PermissionService().get_order_permission)])
+# async def make_order(
+#         order_id: int,
+#         service: OrderService = Depends(),
+#         session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
+# ):
+#     return await service.make_order(session=session, order_id=order_id)
+
+

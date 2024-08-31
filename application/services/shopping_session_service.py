@@ -15,7 +15,7 @@ from application.schemas.domain_model_schemas import ShoppingSessionS
 from pydantic import ValidationError, PydanticSchemaGenerationError
 
 from core.config import settings
-from core.exceptions import DomainModelConversionError
+from core.exceptions import DomainModelConversionError, DBError, NotFoundError, ServerError, EntityDoesNotExist
 from logger import logger
 
 
@@ -45,6 +45,28 @@ class ShoppingSessionService(EntityBaseService):
             total=shopping_session.total,
             expiration_time=shopping_session.expiration_time
         )
+
+    async def get_shopping_session_by_id_with_details(
+            self,
+            session: AsyncSession,
+            id: UUID
+    ) -> ShoppingSession:
+        try:
+            return await self.shopping_session_repo.get_shopping_session_with_details(
+                session=session,
+                id=id
+            )
+        except (DBError, NotFoundError) as e:
+            if type(e) == DBError:
+                logger.error(
+                    "Failed to get shopping session",
+                    extra={"session_id": id},
+                    exc_info=True
+                )
+                raise ServerError()
+            elif type(e) == NotFoundError:
+                raise EntityDoesNotExist("Cart (books in the cart)")
+
 
     async def create_shopping_session(
             self,

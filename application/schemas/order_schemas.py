@@ -61,3 +61,9 @@ class ReturnOrderIdS(ReturnOrderS):
 class AddBookToOrderS(BaseModel):
     book_id: UUID
     count_ordered: int = Field(ge=1)
+
+
+class OrderItemS(BaseModel):
+    book_name: str = Field(min_length=2)
+    quantity: int = Field(ge=1)
+    price: float = Field(ge=0.0)

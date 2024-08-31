@@ -92,7 +92,7 @@ def store_cart_to_cache(cache_time_seconds: int):
                 await redis_con.expire(
                     name=book_hash_name,
                     time=cache_time_seconds,
-                ) # set expire timeout for book_hash
+                )  # set expire timeout for book_hash
 
             for book_id in books_ids:
                 cart_set_name = f"cart:{shopping_session_id}"

@@ -194,7 +194,6 @@ class PaymentDetail(Base, TimestampMixin):
     def __repr__(self):
         return f"""PaymentDetail(
             id={self.id},
-            order_id={self.order_id},
             status={self.status},
             payment_provider={self.payment_provider},
             amount={self.amount} 

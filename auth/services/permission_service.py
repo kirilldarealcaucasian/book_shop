@@ -97,7 +97,6 @@ class PermissionService(AuthRepository):
         _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user,  exception
         # will be raised by user_service
 
-
     async def get_authorized_permission(
             self,
             credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),

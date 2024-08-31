@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     SHOPPING_SESSION_DURATION: str
     SHOPPING_SESSION_COOKIE_NAME: str
 
+    YOOCASSA_ACCOUNT_ID: int
+    YOOCASSA_SECRET_KEY: str
+
     @property
     def SHOPPING_SESSION_EXPIRATION_TIMEDELTA(self) -> timedelta:
         time_intervals = self.SHOPPING_SESSION_DURATION.split(":")
