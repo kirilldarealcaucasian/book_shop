@@ -1,0 +1,3 @@
+[submodule "ecommerce"]
+	path = ecommerce
+	url = https://github.com/kirilldarealcaucasian/FastAPI_shop_backend
