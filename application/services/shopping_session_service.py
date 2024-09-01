@@ -67,7 +67,6 @@ class ShoppingSessionService(EntityBaseService):
             elif type(e) == NotFoundError:
                 raise EntityDoesNotExist("Cart (books in the cart)")
 
-
     async def create_shopping_session(
             self,
             session: AsyncSession,

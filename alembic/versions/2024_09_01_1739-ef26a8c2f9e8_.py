@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1b04f8a5cb3a
+Revision ID: ef26a8c2f9e8
 Revises: 
-Create Date: 2024-08-30 19:38:24.337625
+Create Date: 2024-09-01 17:39:07.715041
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1b04f8a5cb3a'
+revision: str = 'ef26a8c2f9e8'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -141,7 +141,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['book_id'], ['books.id'], name=op.f('fk_cart_items_book_id_books'), ondelete='RESTRICT'),
-    sa.ForeignKeyConstraint(['session_id'], ['shopping_sessions.id'], name=op.f('fk_cart_items_session_id_shopping_sessions'), ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['session_id'], ['shopping_sessions.id'], name=op.f('fk_cart_items_session_id_shopping_sessions'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('session_id', 'book_id', 'id', name=op.f('pk_cart_items')),
     sa.UniqueConstraint('session_id', 'book_id', name='uq_cart_items_session_id_book_id')
     )

@@ -3,11 +3,13 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.models import Book
 from application.repositories.book_repo import CombinedBookRepoInterface
 from core import EntityBaseService
 from core.base_repos import OrmEntityRepoInterface
 from core.exceptions import EntityDoesNotExist, DomainModelConversionError
-from application import CreateBookS, Book
+from application.schemas.book_schemas import CreateBookS
+
 from application.schemas import (
     ReturnImageS,
     ReturnBookS,
@@ -16,8 +18,7 @@ from application.schemas import (
 )
 
 from application.repositories import BookRepository, ImageRepository
-from application.services.storage import StorageServiceInterface
-from application.services.storage.internal_storage import InternalStorageService
+from application.services.storage import StorageServiceInterface, InternalStorageService
 from typing import Annotated
 from application.schemas.domain_model_schemas import BookS
 from pydantic import ValidationError, PydanticSchemaGenerationError

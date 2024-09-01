@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError
@@ -80,8 +80,6 @@ class ShoppingSessionRepository(OrmEntityRepository):
         try:
             # res = (await session.execute(stmt)).scalar_one_or_none()
             res = (await session.scalars(stmt)).all()
-            print("RES: ", res
-                  )
         except SQLAlchemyError as e:
             raise DBError(traceback=str(e))
 
@@ -90,3 +88,14 @@ class ShoppingSessionRepository(OrmEntityRepository):
 
         return res
 
+    async def delete(
+            self,
+            session: AsyncSession,
+            instance_id: int | str
+    ) -> None:
+        stmt = delete(ShoppingSession).where(ShoppingSession.id == str(instance_id))
+        try:
+            await session.execute(stmt)
+            await super().commit(session=session)
+        except SQLAlchemyError as e:
+            raise DBError(traceback=str(e))

@@ -13,6 +13,10 @@ class CreateOrderS(OrderBaseS):
     order_status: str | None = None
 
 
+class OrderIdS(BaseModel):
+    id: int
+
+
 class UpdateOrderS(OrderBaseS):
     pass
 

@@ -213,7 +213,7 @@ class Order(Base):
         cascade="all, delete-orphan"
     )
 
-    payment_detail: Mapped["PaymentDetail"] = relationship(
+    payment_detail: Mapped[list["PaymentDetail"]] = relationship(
         back_populates="order",
     )
 
@@ -336,7 +336,7 @@ class CartItem(Base, TimestampMixin):
     )
 
     session_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_sessions.id",
-                                                        ondelete="RESTRICT",
+                                                        ondelete="CASCADE",
                                                         ), primary_key=True)
     book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id",
                                                      ondelete="RESTRICT",

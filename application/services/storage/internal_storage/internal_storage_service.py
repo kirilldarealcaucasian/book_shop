@@ -10,10 +10,11 @@ from application.services.storage.internal_storage.image_manager import (
     ImageData,
 )
 from application.schemas import CreateImageS
-from application.tasks import upload_image
+
 from logger import logger
 from celery.exceptions import TaskError
-from application.tasks import delete_all_images
+
+
 
 
 class InternalStorageService(EntityBaseService):
@@ -33,6 +34,7 @@ class InternalStorageService(EntityBaseService):
             instance_id: str | int,
             image: UploadFile,
     ) -> CreateImageS:
+        from application.tasks.tasks1 import upload_image
         res: ImageData = await self.__image_manager(
             image=image, image_folder_name=instance_id
         )
@@ -89,6 +91,7 @@ class InternalStorageService(EntityBaseService):
             session: AsyncSession,
             delete_images: bool = False,
     ) -> None:
+        from application.tasks.tasks1 import delete_all_images
         logger.debug("in delete_instance_with_images")
         if delete_images:
             _ = super().delete(

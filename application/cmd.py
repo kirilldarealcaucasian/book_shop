@@ -10,7 +10,8 @@ from auth.routers import auth_router
 from application.api.rest.v1 import (
     image_router,
     order_router, book_router, user_router,
-    publisher_router, author_router, cart_router
+    publisher_router, author_router,
+    cart_router, checkout_router
 )
 from core.config import settings
 from logger import logger
@@ -35,7 +36,8 @@ app.add_middleware(
 for router in (
         book_router, order_router,
         user_router, image_router, auth_router,
-        publisher_router, author_router, cart_router
+        publisher_router, author_router, cart_router,
+        checkout_router
 ):
     app.include_router(router)
 

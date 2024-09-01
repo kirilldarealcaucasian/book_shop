@@ -5,7 +5,8 @@ __all__ = (
     "user_router",
     "author_router",
     "publisher_router",
-    "cart_router"
+    "cart_router",
+    "checkout_router"
 )
 
 from application.api.rest.v1.routers import (
@@ -15,5 +16,6 @@ from application.api.rest.v1.routers import (
     user_router,
     author_router,
     publisher_router,
-    cart_router
+    cart_router,
+    checkout_router
 )

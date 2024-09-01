@@ -5,21 +5,18 @@ from fastapi import Depends
 from pydantic import ValidationError, PydanticSchemaGenerationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.models import Book, User
-from application.repositories.book_order_assoc_repo import BookOrderAssocRepository
+from application.models import Book
+from application.repositories.book_order_assoc_repo import BookOrderAssocRepository, CombinedBookOrderAssocRepoInterface
 from application.repositories.book_repo import CombinedBookRepoInterface
 from application.repositories.cart_repo import CombinedCartRepositoryInterface, CartRepository
+from application.repositories.payment_detail_repo import CombinedPaymentDetailRepoInterface, PaymentDetailRepository
 from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface
-from application.schemas.domain_model_schemas import OrderS, BookOrderAssocS, CartItemS
-from application.schemas.payment_schemas import CreateReceiptS, ReturnPaymentS
+from application.schemas.domain_model_schemas import OrderS, BookOrderAssocS, PaymentDetailS
 from application.services.order_service.utils import order_assembler
-from application.services.payment_service import PaymentServiceInterface
-# from application.services.payment_service import PaymentServiceInterface, YooCassaPaymentService
-from core.base_repos import OrmEntityRepoInterface
 from core.exceptions import (
     EntityDoesNotExist,
     DomainModelConversionError, NotFoundError,
-    DBError, ServerError, PaymentObjectCreationError, PaymentRetrieveStatusError
+    DBError, ServerError
 )
 from application.schemas import (
     ReturnOrderS,
@@ -29,8 +26,7 @@ from application.schemas import (
     ReturnUserS,
     ShortenedReturnOrderS,
     ReturnUserWithOrdersS,
-    UpdatePartiallyOrderS,
-    CreatePaymentS,
+    UpdatePartiallyOrderS, ReturnCartS, ReturnShoppingSessionS,
 )
 
 from application.repositories import (
@@ -40,22 +36,18 @@ from application.repositories import (
 )
 
 from application.schemas.filters import PaginationS
-from application.schemas.order_schemas import AssocBookS, AddBookToOrderS, OrderItemS
-# from application.services.user_service import UserService
-# from application.services.book_service import BookService
-from application.tasks import send_order_summary_email
-from application.models import Order, BookOrderAssoc, ShoppingSession, CartItem
-from typing import Annotated, TypeAlias, Union
+from application.schemas.order_schemas import AssocBookS, AddBookToOrderS, OrderIdS
+from application.models import Order, BookOrderAssoc
+from typing import Annotated, TypeAlias, Union, Literal
 
+from infrastructure.postgres import db_client
 from logger import logger
 from application.repositories.order_repo import CombinedOrderRepositoryInterface
 from core.entity_base_service import EntityBaseService
 from application.services import (
-    BookService, UserService,
-    YooCassaPaymentService,
-    CartService,
+    BookService, UserService, CartService, ShoppingSessionService
 )
-from application.tasks.tasks1 import process_payment
+from application.tasks.tasks1 import send_order_summary_email
 
 
 OrderId: TypeAlias = str
@@ -70,7 +62,7 @@ class OrderService(EntityBaseService):
         ],
         book_repo: Annotated[CombinedBookRepoInterface, Depends(BookRepository)],
         book_order_assoc_repo: Annotated[
-            OrmEntityRepoInterface, Depends(BookOrderAssocRepository)
+            CombinedBookOrderAssocRepoInterface, Depends(BookOrderAssocRepository)
         ],
         shopping_session_repo: Annotated[
             CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
@@ -78,29 +70,34 @@ class OrderService(EntityBaseService):
         cart_repo: Annotated[
             CombinedCartRepositoryInterface, Depends(CartRepository)
         ],
-        payment_service: Annotated[
-            PaymentServiceInterface, Depends(YooCassaPaymentService)
+        payment_detail_repo: Annotated[
+            CombinedPaymentDetailRepoInterface, Depends(PaymentDetailRepository)
         ],
         book_service: BookService = Depends(),
         user_service: UserService = Depends(),
+        cart_service: CartService = Depends(),
+        shopping_session_service: ShoppingSessionService = Depends()
     ):
         super().__init__(
+            payment_detail_repo=payment_detail_repo,
             shopping_session_repo=shopping_session_repo,
             order_repo=order_repo,
             book_order_assoc_repo=book_order_assoc_repo
         )
-        self.payment_service = payment_service
         self.order_repo = order_repo
         self.book_repo = book_repo
         self.user_service = user_service
         self.book_service = book_service
+        self.shopping_session_service = shopping_session_service
+        self.cart_service = cart_service
         self.cart_repo = cart_repo
         self.book_order_assoc_repo = book_order_assoc_repo
         self.shopping_session_repo = shopping_session_repo
+        self.payment_detail_repo = payment_detail_repo
 
     async def create_order(
         self, session: AsyncSession, dto: CreateOrderS
-    ) -> None:
+    ) -> OrderIdS:
         dto: dict = dto.model_dump(exclude_unset=True)
 
         try:
@@ -117,10 +114,14 @@ class OrderService(EntityBaseService):
             session=session, id=domain_model.user_id
         )  # if no exception was raised
 
-        return await super().create(
+        order_id: int = await super().create(
             repo=self.order_repo,
             session=session,
             domain_model=domain_model
+        )
+
+        return OrderIdS(
+            id=order_id
         )
 
     async def get_all_orders(
@@ -339,11 +340,13 @@ class OrderService(EntityBaseService):
         user: ReturnUserS = await self.user_service.get_user_by_order_id(
             session=session, order_id=order_id
         )
+
         user_with_orders: ReturnUserWithOrdersS = (
             await self.user_service.get_user_with_orders(
                 session=session, user_id=user.id
             )
         )
+
         order_books: list[BookSummaryS] = []
 
         for order in user_with_orders.orders:
@@ -368,83 +371,90 @@ class OrderService(EntityBaseService):
 
     async def perform_order(
             self,
-            session: AsyncSession,
-            shopping_session_id: UUID
+            payment_id: UUID,
+            shopping_session_id: UUID,
+            status: Literal["success", "failed"],
     ):
-        shopping_session: ShoppingSession = await self.shopping_session_repo.get_by_id(
-            session=session,
-            id=shopping_session_id
-        )
-
-        cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
-            session=session,
-            cart_session_id=shopping_session_id
-        )
-
-        if shopping_session is None:
-            logger.info(
-                "ShoppingSession does not exist",
-                extra={"shopping_session_id", shopping_session_id}
-            )
-            raise EntityDoesNotExist(
-                entity="Cart"
-            )
-
-        cart_owner: User = shopping_session.user
-        cart_owner_full_name = " ".join([cart_owner.first_name, cart_owner.last_name])
-
-        order_items: list[OrderItemS] = []
-
-        for item in cart:
-            book: Book = item.book
-            order_items.append(
-                OrderItemS(
-                    book_name=book.name,
-                    quantity=item.quantity,
-                    price=book.price_with_discount
+        print("IN PERFORM ORDER")
+        """If status OK --> get cart ids of books, then add this
+         books to order, change status of payment, delete cart"""
+        async with db_client.async_session() as session:
+            if status == "success":
+                cart: ReturnCartS = await self.cart_service.get_cart_by_session_id(
+                    session=session,
+                    shopping_session_id=shopping_session_id
                 )
-            )
 
-        receipt = CreateReceiptS(
-            customer_full_name=cart_owner_full_name,
-            customer_email=cart_owner.email,
-            items=order_items
-        )
+                print("CART: ", cart)
 
-        order_item_names = ", ".join([order_item.book_name for order_item in order_items])
-        description = f"Вы заказываете {order_item_names}"
+                await self.payment_detail_repo.update(
+                    session=session,
+                    domain_model=PaymentDetailS(
+                        status="success",
+                    ),
+                    instance_id=payment_id
+                )  # update payment status
 
-        payment_data = CreatePaymentS(
-            total_amount=shopping_session.total,
-            currency="RUB",
-            description=description,
-            receipt=receipt
-        )
-        try:
-            payment_creds: ReturnPaymentS = self.payment_service.create_payment(
-                payment_data=payment_data
-            )
-            print("CONFIRMATION_URL: ", payment_creds.confirmation_url)
-        except PaymentObjectCreationError:
-            raise ServerError("Something went wrong during payment process")
+                print("UPDATED PAYMENT STATUS")
 
-        # try:
-        #     payment_status: bool = await self.payment_service.check_payment_status(
-        #         payment_id=payment_creds.payment_id
-        #     )
-        # except PaymentRetrieveStatusError:
-        #     raise ServerError("Something went wrong during payment process")
+                shopping_session: ReturnShoppingSessionS = await self.shopping_session_service.get_shopping_session_by_id(
+                    session=session,
+                    id=shopping_session_id
+                )
 
-        print("BEFORE SENDING CELERY TASK")
-        process_payment.delay(
-            # session=session,
-            # shopping_session_id=shopping_session_id,
-            payment_id=payment_creds.payment_id
-        )
-        return payment_creds.confirmation_url
+                print("GOT SHOPPING SESSION")
 
-        # if payment_status:
-        #     print("PAYMENT STATUS IS OOOOOOOK")
-        #
-        # if not payment_status:
-        #     print("PAYMENT STATUS IS NOT OOOOOOKAY")
+                cart_books: list[AssocBookS] = cart.books
+
+                domain_models: list[BookOrderAssocS] = []
+
+                order_dto = CreateOrderS(
+                    user_id=shopping_session.user_id,
+                    order_status="success"
+                )
+
+                order: OrderIdS = await self.create_order(
+                    session=session,
+                    dto=order_dto
+                )  # create order
+
+                for book in cart_books:
+                    domain_models.append(
+                        BookOrderAssocS(
+                            book_id=book.book_id,
+                            order_id=order.id,
+                            count_ordered=book.count_ordered
+                        )
+                    )
+
+                print("CREATED ORDER")
+
+                try:
+                    await self.book_order_assoc_repo.create_many(
+                        session=session,
+                        domain_models=domain_models
+                    )  # take books from cart to order
+                    print("ORDER IS FULFILLED WITH DATA")
+                except DBError:
+                    await session.rollback()
+                    extra = {
+                        "domain_models": domain_models
+                    }
+                    logger.error("failed to add data to order", exc_info=True, extra=extra)
+                    raise ServerError("Failed to create order")
+
+            try:
+                await self.shopping_session_service.delete(
+                    session=session,
+                    repo=self.shopping_session_repo,
+                    instance_id=shopping_session_id
+                )  # delete cart with its items
+            except DBError:
+                await session.rollback()
+                logger.error("failed to delete cart")
+            print("CART DELETED")
+
+
+
+
+

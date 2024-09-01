@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Protocol, TypeVar
 
@@ -28,7 +30,7 @@ class OrmEntityRepoInterface(Protocol):
     async def update(
             self,
             domain_model: DomainModelDataT,
-            instance_id: int,
+            instance_id: int | UUID,
             session: AsyncSession,
     ):
         ...

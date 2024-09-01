@@ -8,7 +8,7 @@ from celery import Celery
 celery = Celery(
     "tasks1",
     # broker=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
-    broker=f"redis://127.0.0.1:6379",
+    broker="redis://127.0.0.1:6379",
     include=["application.tasks.tasks1"],
 )
 

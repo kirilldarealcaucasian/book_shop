@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import CompileError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from typing import Union
+from typing import Union, Protocol
 
 from application.services.utils.filters import BookFilter
 
@@ -17,7 +17,7 @@ from core.exceptions import FilterError
 from logger import logger
 
 
-class BookRepoInterface(OrmEntityRepository):
+class BookRepoInterface(Protocol):
     async def get_all_books(
             self,
             session: AsyncSession,

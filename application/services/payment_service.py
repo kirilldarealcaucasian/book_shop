@@ -1,109 +1,140 @@
 import asyncio
-import json
-from typing import Protocol, TypeAlias
-from yookassa import Payment, Configuration
-from uuid import uuid4
+import uuid
+from typing import Annotated
+from uuid import UUID
 
-from application.schemas import CreatePaymentS, ReturnPaymentS
-from core.config import settings
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-
-__all__ = (
-    "PaymentServiceInterface",
-    "YooCassaPaymentService"
+from application import User, Book
+from application.models import ShoppingSession, CartItem
+from application.repositories.cart_repo import CombinedCartRepositoryInterface, CartRepository
+from application.repositories.payment_detail_repo import CombinedPaymentDetailRepoInterface, PaymentDetailRepository
+from application.repositories.shopping_session_repo import CombinedShoppingSessionRepositoryInterface, \
+    ShoppingSessionRepository
+from application.schemas import OrderItemS, CreatePaymentS, ReturnPaymentS
+from application.schemas.domain_model_schemas import PaymentDetailS
+from core import EntityBaseService
+from core.exceptions import EntityDoesNotExist, PaymentObjectCreationError, ServerError
+from infrastructure.payment.yookassa.app import (
+    PaymentProviderInterface, YooKassaPaymentProvider
 )
-
-from core.exceptions import PaymentObjectCreationError, PaymentRetrieveStatusError
 from logger import logger
 
-PaymentID: TypeAlias = str
+
+ConfirmationURL = TypeAlias = str
 
 
-class PaymentServiceInterface(Protocol):
+class PaymentService(EntityBaseService):
 
-    def create_payment(
+    def __init__(
             self,
-            payment_data: CreatePaymentS
-    ) -> ReturnPaymentS:
-        ...
+            payment_provider: Annotated[
+                PaymentProviderInterface, Depends(YooKassaPaymentProvider)],
+            shopping_session_repo: Annotated[
+                CombinedShoppingSessionRepositoryInterface, Depends(ShoppingSessionRepository)
+            ],
+            cart_repo: Annotated[
+                CombinedCartRepositoryInterface, Depends(CartRepository)
+            ],
+            payment_detail_repo: Annotated[
+                CombinedPaymentDetailRepoInterface, Depends(PaymentDetailRepository)
+            ]
+    ):
+        self.payment_provider = payment_provider
+        super().__init__(
+            shopping_session_repo=shopping_session_repo,
+            cart_repo=cart_repo,
+            payment_detail_repo=payment_detail_repo
+        )
+        self.shopping_session_repo = shopping_session_repo
+        self.cart_repo = cart_repo
+        self.payment_detail_repo = payment_detail_repo
 
-    def get_payment_status(self, payment_status: int) -> str:
-        ...
-
-    async def check_payment_status(self, payment_id: str) -> bool:
-        ...
-
-
-class YooCassaPaymentService:
-
-    def __init__(self):
-        Configuration.account_id = settings.YOOCASSA_ACCOUNT_ID
-        Configuration.secret_key = settings.YOOCASSA_SECRET_KEY
-
-    def create_payment(
+    async def make_payment(
             self,
-            payment_data: CreatePaymentS
-    ) -> ReturnPaymentS:
-        idempotancy_key = uuid4()
-
-        try:
-            payment = Payment.create(
-                {
-                    "amount": {
-                        "value": payment_data.total_amount,
-                        "currency": payment_data.currency
-                    },
-                    "confirmation": {
-                        "type": "redirect",
-                        "return_url": "http://127.0.0.1:8000"
-                    },
-                    "capture": True,
-                    "description": payment_data.description,
-                    "metadata": {
-                    },
-                },
-                idempotency_key=idempotancy_key
-            )  # create Payment object
-        except (TypeError, ValueError):
-            extra = {
-                "payment_data": payment_data
-            }
-            logger.error(
-                "Failed to create payment object",
-                exc_info=True, extra=extra
-            )
-            raise PaymentObjectCreationError()
-
-        payment_data = json.loads(payment.json())
-
-        payment_id = payment_data["id"]
-        confirmation_url = payment_data["confirmation"]["confirmation_url"]
-        return ReturnPaymentS(
-            confirmation_url=confirmation_url,
-            payment_id=payment_id
+            session: AsyncSession,
+            shopping_session_id: UUID
+    ) -> ConfirmationURL:
+        """
+        Retrieves cart items and information about the cart (ShoppingSession),
+        creates PaymentDetail object, then calls to payment provider to get
+        payment url and starts polling
+        asynchronously for payment status in the background
+        """
+        shopping_session: ShoppingSession = await self.shopping_session_repo.get_by_id(
+            session=session,
+            id=shopping_session_id
         )
 
-    def get_payment_status(self, payment_id: PaymentID) -> str:
-        try:
-            payment = json.loads(Payment.find_one(payment_id).json())
-            return payment["status"]
-        except Exception:
-            logger.error(
-                "Failed to get payment_status",
-                exc_info=True,
-                extra={"payment_id": payment_id}
+        cart: list[CartItem] = await self.cart_repo.get_cart_by_session_id(
+            session=session,
+            cart_session_id=shopping_session_id
+        )
+
+        if shopping_session is None:
+            logger.info(
+                "ShoppingSession does not exist",
+                extra={"shopping_session_id", shopping_session_id}
             )
-            raise PaymentRetrieveStatusError()
+            raise EntityDoesNotExist(
+                entity="Cart"
+            )
 
-    async def check_payment_status(self, payment_id: str) -> bool:
-        payment_status = self.get_payment_status(payment_id=payment_id)
+        cart_owner: User = shopping_session.user
+        cart_owner_full_name = " ".join([cart_owner.first_name, cart_owner.last_name])
 
-        while payment_status == "pending":
-            payment_status = self.get_payment_status(payment_id=payment_id)
-            await asyncio.sleep(5)
+        order_items: list[OrderItemS] = []
 
-        if payment_status == "succeeded":
-            return True
+        for item in cart:
+            book: Book = item.book
+            order_items.append(
+                OrderItemS(
+                    book_name=book.name,
+                    quantity=item.quantity,
+                    price=book.price_with_discount
+                )
+            )
 
-        else:
-            return False
+        order_item_names = ", ".join([order_item.book_name for order_item in order_items])
+        description = f"You're ordering: {order_item_names}"
+
+        payment_data = CreatePaymentS(
+            customer_full_name=cart_owner_full_name,
+            customer_email=cart_owner.email,
+            total_amount=shopping_session.total,
+            currency="RUB",
+            description=description,
+            items=order_items
+        )
+
+        try:
+            payment_creds: ReturnPaymentS = self.payment_provider.create_payment(
+                payment_data=payment_data
+            )
+        except PaymentObjectCreationError:
+            raise ServerError("Something went wrong during payment process")
+
+        payment_id: UUID = uuid.UUID(payment_creds.payment_id)
+
+        domain_model = PaymentDetailS(
+            id=payment_id,
+            status="pending",
+            payment_provider="yookassa",
+            amount=shopping_session.total
+        )
+
+        _ = await super().create(
+            session=session,
+            repo=self.payment_detail_repo,
+            domain_model=domain_model
+        )  # create PaymentDetail, if sth is wrong http_exception is raised
+
+        logger.debug("Starting to check payment status . . .")
+        _ = asyncio.create_task(self.payment_provider.check_payment_status(
+            shopping_session_id=shopping_session_id,
+            payment_id=payment_creds.payment_id)
+        )  # schedule a task to the event loop so that it could execute in the "background"
+
+        return payment_creds.confirmation_url
+

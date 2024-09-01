@@ -12,7 +12,7 @@ from auth.repositories import AuthRepository
 from application.models import Order
 from application.repositories import OrderRepository
 from application.repositories.order_repo import CombinedOrderRepositoryInterface
-from application.services import OrderService, UserService, ShoppingSessionService
+from application.services import OrderService, UserService, ShoppingSessionService, CartService
 from infrastructure.postgres import db_client
 from core.exceptions import UnauthorizedError, NoCookieError
 
@@ -99,12 +99,20 @@ class PermissionService(AuthRepository):
 
     async def get_authorized_permission(
             self,
+            shopping_session_id: UUID = Cookie(None),
             credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
             user_service: UserService = Depends(),
+            cart_service: CartService = Depends(),
             session: AsyncSession = Depends(db_client.get_scoped_session_dependency)
     ):
-        "Checks if the user is logged in"
         payload: dict = get_token_payload(credentials=credentials)
         user_id = payload["user_id"]
-        _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user,  exception
+        _ = await user_service.get_user_by_id(session=session, id=user_id)  # if no user, exception
         # will be raised by user_service
+
+        """Checks if the user is logged in"""
+        if shopping_session_id:
+            await cart_service.get_cart_by_user_id(
+                session=session,
+                user_id=user_id
+            )  # if cart exists, check that this user is an owner of this cart

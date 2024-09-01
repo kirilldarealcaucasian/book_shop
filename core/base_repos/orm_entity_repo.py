@@ -97,7 +97,6 @@ class OrmEntityRepository:
             instance_id: str | int | UUID,
             session: AsyncSession,
     ) -> model:
-        print("DOMAIN MODEL: ", domain_model)
         res = await self.get_all(session=session, id=instance_id)  # check existence of the entity
 
         if not res:
@@ -105,7 +104,6 @@ class OrmEntityRepository:
 
         try:
             to_update: dict = domain_model.model_dump(exclude_unset=True, exclude_none=True)
-            print("TO UPDATE: ", to_update)
         except Exception as e:
             raise DBError(
                 traceback=str(e)
@@ -150,5 +148,6 @@ class OrmEntityRepository:
         from logger import logger
         try:
             await session.commit()
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
             logger.error("Error while committing session", exc_info=True)
+            raise DBError(traceback=str(e))
