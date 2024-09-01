@@ -66,19 +66,19 @@ services:
     ports:
       - "5432:5432"
 
-#  migrator:
-#   build:
-#     context: ../ecommerce
-#
-#   deploy:
-#     restart_policy:
-#       condition: on-failure
-#       max_attempts: 7
-#
-#   command: bash -c "alembic revision --autogenerate && alembic upgrade head"
-#
-#   depends_on:
-#     - db
+  migrator:
+   build:
+     context: ../ecommerce
+
+   deploy:
+     restart_policy:
+       condition: on-failure
+       max_attempts: 7
+
+   command: bash -c "alembic revision --autogenerate && alembic upgrade head"
+
+   depends_on:
+     - db
 
 
   redis:

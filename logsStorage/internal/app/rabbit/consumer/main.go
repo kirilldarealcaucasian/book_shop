@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -52,7 +51,6 @@ func MustConsume(log *slog.Logger, lrc chan[]*service.LogRequest) {
 					log.Error("Failed to unmarshal a message", slog.String(op, err.Error()))
 					panic(err)
 				}
-				fmt.Printf("LOGS: %+v", logs)
 				return nil
 			})
 		}
