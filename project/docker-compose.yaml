@@ -29,8 +29,8 @@ services:
 
       - SMTP_HOST=smtp.gmail.com
       - SMTP_PORT=465
-      - SMTP_USER=richi.mosberg@gmail.com
-      - SMTP_PASS=wigfzahnhuzdfwge
+      - SMTP_USER=your_smtp_user
+      - SMTP_PASS=your_smtp_pass
 
       - REDIS_HOST=redis
       - REDIS_PORT=6379
