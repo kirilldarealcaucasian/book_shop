@@ -61,7 +61,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_SERVER=db
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=proj_db
+      - POSTGRES_DB=proj_db_test
 
     ports:
       - "5432:5432"
@@ -75,11 +75,10 @@ services:
        condition: on-failure
        max_attempts: 7
 
-   command: bash -c "alembic revision --autogenerate && alembic upgrade head"
+   command: bash -c "alembic upgrade head"
 
    depends_on:
-     - db
-
+     - web
 
   redis:
    container_name:
@@ -109,7 +108,7 @@ services:
    depends_on:
      - redis
 
-   command: bash -c "celery -A infrastructure.celery.app:celery worker -B --loglevel=INFO"
+   command: bash -c "celery -A infrastructure.celery.app:celery worker -l INFO --pool=solo --beat"
 
   logs-service:
     build:
@@ -120,13 +119,13 @@ services:
       CONFIG_PATH: "/app/config/config.yaml"
       RABBIT_USER: rmuser
       RABBIT_PASSWORD: rmpassword
-      RABBIT_HOST: rabbit
+      RABBIT_HOST: rabbitmq
       RABBIT_PORT: 5672
     restart: on-failure
     depends_on:
-      - mongo
       - rabbitmq
       - web
+
 
   mongo:
     image: mongo
@@ -150,7 +149,6 @@ services:
   rabbitmq:
     container_name: rabbitmq
     image: rabbitmq:3.11-management
-    hostname: rabbitmq
     restart: always
     environment:
       - RABBITMQ_DEFAULT_USER=rmuser
@@ -159,9 +157,6 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
-    depends_on:
-      - web
-      - celery
 
 
 volumes:
