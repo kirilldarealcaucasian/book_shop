@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   logs-service:
+    container_name: logs_service
     build:
       context: ..
     ports:
@@ -11,7 +12,6 @@ services:
     restart: on-failure
     depends_on:
       - mongo
-      - rabbitmq
   
   mongo:
     image: mongo
@@ -35,7 +35,6 @@ services:
   rabbitmq:
     container_name: rabbitmq
     image: rabbitmq:3.11-management
-    hostname: rabbitmq
     restart: always
     environment:
       - RABBITMQ_DEFAULT_USER=rmuser
@@ -44,3 +43,5 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
+    depends_on:
+      - logs-service

@@ -8,7 +8,6 @@ import (
 	"github.com/FelishaK/logStorage/internal/handlers"
 	"github.com/FelishaK/logStorage/internal/repository"
 	"github.com/FelishaK/logStorage/internal/service"
-	servicepack "github.com/FelishaK/logStorage/internal/service"
 )
 
 type App struct {
@@ -26,23 +25,21 @@ func NewApp(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 	
-	service := service.NewLogService(cfg, log, repo)
-
-	logServ := handlers.NewLogServer(log, service)
+	serv := service.NewLogService(cfg, log, repo) 
+	logServ := handlers.NewLogServer(log, serv)
 
 	// init consume process
 	log.Info("Creating logs channel . . .")
 	// consumer reads data from the
-	logs := make(chan []*servicepack.LogRequest)
+	logs := make(chan []*service.LogRequest)
 	go func(){
 		for {
 			resLogs := <- logs
 			log.Info("Saving logs to the db . . .")
-			service.SaveLogs(resLogs)
-			continue
+			serv.SaveLogs(resLogs)
 		}	
 	}()
-	consumer.MustConsume(log, logs)
+	go consumer.MustConsume(log, logs, cfg)
 
 	return &App{
 		LogServ: logServ,

@@ -19,11 +19,10 @@ type MongoDB struct {
 func RunMongoDB(mongoUser, mongoPassword, mongoHost, mongoDB string, mongoPort int, timeout time.Duration) (*MongoDB, error) {
 	const op = "storage.NewMongoDB"
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
 	defer cancel()
 	
 	conStr := fmt.Sprintf("mongodb://%s:%s@%s:%s", mongoUser, mongoPassword, mongoHost, strconv.Itoa(mongoPort))
-	// conStr := "mongodb://user:user@localhost:27017"
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(conStr))
 	if err != nil {

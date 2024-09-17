@@ -32,7 +32,6 @@ func New(t *testing.T) (context.Context, *Suite) {
 		Level: slog.LevelDebug,
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &opts))
-
 	app := app.NewApp(log, cfg)
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), time.Duration(time.Minute* 10))

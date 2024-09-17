@@ -32,7 +32,7 @@ func main() {
 	go func() {
 		httpServ.RunServer(httpSrv)
 	}()
-	log.Info("Server is running on ",slog.String("address", cfg.HttpServe.Address) )
+	log.Info("Server is running on ", slog.String("address", cfg.HttpServe.Address) )
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)

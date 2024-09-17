@@ -9,3 +9,8 @@ database:
   mongo_port: 27017
   mongo_db_name: "logs"
   timeout: 1s
+rabbitmq:
+  rabbit_user: "rmuser"
+  rabbit_password: "rmpassword"
+  rabbit_host: "rabbitmq"
+  rabbit_port: 5672

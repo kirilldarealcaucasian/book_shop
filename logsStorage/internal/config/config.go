@@ -11,6 +11,7 @@ import (
 type Config struct {
 	HttpServe HttpServer `yaml:"http_server" env-required:"true"` 
 	Database Database			`yaml:"database" env-required:"true"`
+	RabbitMQ RabbitMQ `yaml:"rabbitmq" env-required:"true"`
 }
 
 type HttpServer struct {
@@ -28,10 +29,16 @@ type Database struct {
 	Timeout time.Duration	`yaml:"timeout" env-required:"true"`
 }
 
+type RabbitMQ struct {
+	RabbitUser string `yaml:"rabbit_user" env-required:"true"`
+	RabbitPassword string `yaml:"rabbit_password" env-required:"true"`
+	RabbitHost string	`yaml:"rabbit_host" env-required:"true"`
+	RabbitPort int	`yaml:"rabbit_port" env-required:"true"`
+}
+
 func LoadConfig() (*Config, error) {
 	var cfg Config
 
-	// const cfgPath = "C:\\go\\LogsStorage\\config\\config.yaml"
 	err := FetchConfigByPath(&cfg, os.Getenv("CONFIG_PATH"))
 	// err := FetchConfigByPath(&cfg, cfgPath)
 	if err != nil {
